@@ -1,0 +1,13 @@
+# Python dependencies for the LED matrix scenes.
+#
+# On the Pi, install these with APT (not pip). apt-installed packages live in
+# the system Python that `sudo python3` uses, and it sidesteps the "externally
+# managed environment" pip error on current Raspberry Pi OS:
+#
+#   sudo apt install -y python3-pil python3-requests
+#
+# The `rgbmatrix` module itself is NOT a pip package — it is built and installed
+# by Adafruit's rgb-matrix.sh installer (see README.md, step 2).
+
+Pillow      # imported as PIL — image/GIF handling
+requests    # HTTP calls to the weather API

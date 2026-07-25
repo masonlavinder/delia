@@ -1,0 +1,36 @@
+# custom.toml.example
+#
+# This mirrors what you type into Raspberry Pi Imager's "Edit Settings" screen.
+# Newer Raspberry Pi OS can also read a real `custom.toml` placed in the boot
+# partition (the small FAT partition named "bootfs"/"system-boot") to configure
+# the card without the GUI. Keep this file as a template only.
+#
+# To use it for real: copy to `custom.toml`, fill in the CHANGE_ME values, and
+# drop it on the boot partition of the flashed card. Never commit the filled-in
+# copy — it holds passwords. (See .gitignore.)
+
+config_version = 1
+
+[system]
+hostname = "delia-pi"
+
+[user]
+name = "CHANGE_ME_username"
+# Generate a hashed password instead of storing plaintext:
+#   echo 'yourpassword' | openssl passwd -6 -stdin
+password = "CHANGE_ME_hashed_password"
+password_encrypted = true
+
+[ssh]
+enabled = true
+password_authentication = true
+
+[wlan]
+ssid = "CHANGE_ME_your_wifi_name"
+password = "CHANGE_ME_your_wifi_password"
+password_encrypted = false
+country = "US"
+
+[locale]
+keymap = "us"
+timezone = "America/New_York"   # change to your timezone

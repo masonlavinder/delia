@@ -1,0 +1,18 @@
+# wpa_supplicant.conf.example  (manual WiFi fallback)
+#
+# Older headless method: place a filled-in `wpa_supplicant.conf` on the boot
+# partition and the Pi copies it into place on first boot. On current Raspberry
+# Pi OS (Bookworm+) the Imager settings / custom.toml are the preferred route,
+# but this still works as a fallback if WiFi won't come up.
+#
+# Copy to `wpa_supplicant.conf`, fill in SSID + password, drop on the boot
+# partition. Do NOT commit the filled-in copy (see .gitignore).
+
+country=US
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
+network={
+    ssid="CHANGE_ME_your_wifi_name"
+    psk="CHANGE_ME_your_wifi_password"
+}

@@ -1,0 +1,7 @@
+# Keep real, filled-in configs (they contain WiFi + account passwords) out of git.
+# Only the *.example templates should be committed.
+custom.toml
+wpa_supplicant.conf
+userconf.txt
+*.local
+!*.example
