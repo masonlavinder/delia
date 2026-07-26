@@ -147,16 +147,24 @@ led_matrix/
 
 ## Running scenes
 
-Use the launcher (it adds `sudo` + the right import paths):
+Easiest: the **`display`** command (works from any directory on the Pi):
 
 ```bash
-cd ~/delia/pi_apps/led_matrix
-./run.sh                     # lists all scenes
-./run.sh scratch/hello       # first-light color test
-./run.sh everyday/weather    # current temperature
-./run.sh everyday/clock      # time + date
-./run.sh party/gif cool.gif  # play scenes/party/cool.gif
+display                 # interactive menu — pick a number
+display --help          # list every scene with a description
+display clock           # run a scene by short name
+display everyday/clock  # ...or full group/name
+display gif cool.gif    # pass args to a scene
 ```
+
+One-time install (already done; redo after a reflash):
+
+```bash
+sudo ln -sf ~/delia/pi_apps/led_matrix/display /usr/local/bin/display
+```
+
+Or use the local launcher `./run.sh <scene>` from inside this folder — same thing,
+no install needed (`./run.sh` alone lists scenes).
 
 `Ctrl-C` stops any scene. First time, set your location:
 
