@@ -57,6 +57,10 @@ class RGBMatrixBackend:
         opts.hardware_mapping = "adafruit-hat"
         opts.gpio_slowdown = 2
         opts.brightness = 40
+        # This panel is wired BGR: without this, red<->blue are swapped. One
+        # setting corrects Fill/DrawText/SetImage uniformly. Override if a future
+        # panel differs.
+        opts.led_rgb_sequence = os.environ.get("PANEL_RGB_SEQUENCE", "BGR")
         opts.drop_privileges = False
         self._m = RGBMatrix(options=opts)
         self.width = self._m.width
