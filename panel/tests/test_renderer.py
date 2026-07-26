@@ -106,6 +106,17 @@ def test_load_asset_refuses_escape(tmp_path):
         r._load_asset("../../../etc/passwd", Fit.NONE)
 
 
+def test_gif_layer_animates(tmp_path):
+    frames = [Image.new("RGB", (128, 64), c) for c in [(255, 0, 0), (0, 255, 0), (0, 0, 255)]]
+    frames[0].save(tmp_path / "anim.gif", save_all=True, append_images=frames[1:], duration=100, loop=0)
+    r = renderer(assets_dir=str(tmp_path))
+    r.set_scene(scene([{"type": "gif", "asset_id": "anim", "fit": "none", "fps": 10}]))
+    r.render_frame(0.0)                          # elapsed 0 -> frame 0 (red)
+    assert r.backend.last_frame.getpixel((10, 10)) == (255, 0, 0)
+    r.render_frame(0.1)                          # 0.1s * 10fps = frame 1 (green)
+    assert r.backend.last_frame.getpixel((10, 10)) == (0, 255, 0)
+
+
 def test_fit_contain_and_cover():
     img = Image.new("RGB", (200, 50), (255, 0, 0))
     assert fit_image(img, Fit.CONTAIN, 128, 64).size[0] <= 128

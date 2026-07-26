@@ -59,6 +59,7 @@ class _Item:
     layer: Any
     font: LoadedFont | None
     image: Image.Image | None
+    frames: list | None = None   # pre-fitted GIF frames
 
 
 @dataclass
@@ -102,9 +103,16 @@ def _r_image(c, item, elapsed, caps):
         c.set_image(item.image, item.layer.x, item.layer.y)
 
 
+def _r_gif(c, item, elapsed, caps):
+    frames = item.frames
+    if frames:
+        idx = int(elapsed * item.layer.fps) % len(frames)   # pure function of elapsed
+        c.set_image(frames[idx], item.layer.x, item.layer.y)
+
+
 _RENDERERS = {
     "solid": _r_solid, "text": _r_text, "scroll": _r_scroll,
-    "clock": _r_clock, "image": _r_image,
+    "clock": _r_clock, "image": _r_image, "gif": _r_gif,
 }
 
 
@@ -139,12 +147,31 @@ class Renderer:
                                  self.caps.width, self.caps.height)
         raise FileNotFoundError(f"asset not found: {asset_id}")
 
+    def _load_gif_frames(self, asset_id: str, fit: Fit) -> list[Image.Image]:
+        base = os.path.realpath(self.assets_dir)
+        path = os.path.realpath(os.path.join(base, asset_id + ".gif"))
+        if not (path == base or path.startswith(base + os.sep)) or not os.path.isfile(path):
+            raise FileNotFoundError(f"gif asset not found: {asset_id}")
+        gif = Image.open(path)
+        frames: list[Image.Image] = []
+        try:
+            while True:
+                frames.append(fit_image(gif.copy().convert("RGB"), fit,
+                                        self.caps.width, self.caps.height))
+                gif.seek(gif.tell() + 1)
+        except EOFError:
+            pass
+        if not frames:
+            raise ValueError(f"gif has no frames: {asset_id}")
+        return frames
+
     def prepare(self, scene: Scene) -> _Prepared:
         items = []
         for layer in scene.layers:
             font = self.backend.load_font(layer.font) if hasattr(layer, "font") else None
             image = self._load_asset(layer.asset_id, layer.fit) if layer.type == "image" else None
-            items.append(_Item(layer=layer, font=font, image=image))
+            frames = self._load_gif_frames(layer.asset_id, layer.fit) if layer.type == "gif" else None
+            items.append(_Item(layer=layer, font=font, image=image, frames=frames))
         return _Prepared(scene=scene, items=items)
 
     # -- control (thread-safe) --

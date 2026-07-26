@@ -146,6 +146,15 @@ def test_validate_scene_unsupported_font():
         validate_scene(bad, caps)
 
 
+def test_gif_layer_valid_and_bounds():
+    Scene.model_validate({"name": "g", "layers": [{"type": "gif", "asset_id": "plasma", "fps": 30}]})
+    for bad_fps in (0, 61):
+        with pytest.raises(ValidationError):
+            Scene.model_validate({"name": "g", "layers": [{"type": "gif", "asset_id": "plasma", "fps": bad_fps}]})
+    with pytest.raises(ValidationError):   # asset_id still path-safe
+        Scene.model_validate({"name": "g", "layers": [{"type": "gif", "asset_id": "../x"}]})
+
+
 def test_json_schema_exports(tmp_path):
     from panel.schema import export_schema
     out = export_schema(str(tmp_path / "scene.schema.json"))

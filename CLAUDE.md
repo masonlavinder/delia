@@ -1,46 +1,73 @@
 # delia — project guide for Claude
 
-Personal Raspberry Pi project. Primary subsystem: an **LED matrix display**
-(`pi_apps/led_matrix/`) driven by a Pi 3 A+.
+Personal Raspberry Pi project driving an **Adafruit 128x64 2mm HUB75 LED matrix**
+from a Pi 3 A+.
 
-## Reaching the Pi
+## Architecture (current)
 
-- Pi 3 Model A+ → Adafruit **128x64 2mm HUB75 panel** via the RGB Matrix Bonnet.
-- `ssh mlavinder@delia-pi.local` — passwordless key + passwordless sudo.
-- The Pi holds a clone of this repo at `~/delia/`; scene code at
-  `~/delia/pi_apps/led_matrix/`.
+A long-lived **root daemon owns the matrix** and accepts **declarative scene
+documents** over a Unix socket. An unprivileged web app validates and forwards
+them. Nothing spawns a process; nothing derives a filesystem path from input.
 
-## Dev workflow (LED matrix)
+```
+phone -> web app (panel-api, user mlavinder, group panel)
+             |  newline-JSON
+        /run/panel/panel.sock  (root:panel, 0660)
+             |
+        renderer daemon (panel-renderer, root) -> RGBMatrix (GPIO)
+```
 
-- Edit locally under `pi_apps/led_matrix/`, then push to the Pi:
-  `rsync -az pi_apps/led_matrix/ mlavinder@delia-pi.local:~/delia/pi_apps/led_matrix/`
-  (exclude `config.py` and `__pycache__`; keep `run.sh` / `display` executable —
-  rsync resets the +x bit, so `chmod +x` after if needed).
-- Run a scene on the panel: **`display <scene>`** (or `./run.sh <scene>`), e.g.
-  `display rocket`. Scenes need root for GPIO — `display`/`run.sh` add `sudo`.
-- Scenes are auto-discovered from `scenes/<group>/*.py`; files starting with `_`
-  are hidden (generators/helpers).
+- `panel/` — the system. `src/panel/schema.py` is the **contract** (Pydantic v2,
+  strict, bounded, discriminated union on layer `type`). Layers: `solid`, `text`,
+  `scroll`, `clock`, `image`, `gif`. Fonts are an enum; images/gifs are an
+  `asset_id` (regex, resolved+contained under `panel/assets/`). `renderer.py` is a
+  render loop; `daemon.py` is the trust boundary; `backends/` has `rgbmatrix`
+  (real, root) and `mock` (Pillow, for tests). See `panel/README.md`.
+- `pi_apps/led_matrix/web/server.py` — the phone web UI (Flask). Unprivileged;
+  talks to the daemon via `panel.client`. Built-in scenes live in its `SCENES` dict.
+- `pi_apps/led_matrix/led-matrix-setup.md` — hardware build/repair runbook.
+- `pi_apps/led_matrix/diagnostics/` — troubleshooting tools.
+
+Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
+`panel-api` (mlavinder). The old CLI/direct-GPIO approach (`display`, `run.sh`,
+`scenes/*.py`) has been **removed** — the daemon owns the GPIO now.
+
+## Dev workflow
+
+- Off-Pi, everything runs on the **mock backend** (no GPIO, no fonts on disk):
+  `cd panel && PANEL_BACKEND=mock .venv/bin/pytest`.
+- Edit, then deploy to the Pi and restart:
+  ```
+  rsync -az --exclude .venv --exclude __pycache__ panel mlavinder@delia-pi.local:~/delia/
+  rsync -az pi_apps/led_matrix/web/server.py mlavinder@delia-pi.local:~/delia/pi_apps/led_matrix/web/
+  # on the Pi (needs a password now — see below):
+  sudo systemctl restart panel-renderer panel-api
+  ```
+- **Add a scene:** add a declarative document to `SCENES` in `web/server.py`
+  (built from the layer types). For an animation, drop a `.gif` in `panel/assets/`
+  and reference it with a `gif` layer (`asset_id` = filename without extension).
+- Reach the Pi: `ssh mlavinder@delia-pi.local` (passwordless SSH key).
+  **`sudo` now requires a password** (the broad NOPASSWD grant was removed) — to
+  run a privileged command in a session, prefix it with `! sudo …`.
 
 ## LED matrix conventions — IMPORTANT
 
-- **Backgrounds are OFF, not a dark color.** Fill scene backgrounds with pure
-  black `(0, 0, 0)` so unlit pixels are genuinely off. NEVER use a "dark" tint
-  (e.g. `(5,5,16)`) as a background — on an LED panel that dimly lights every
-  pixel and looks worse. Only light the pixels that are actual content.
-- **Animations must double-buffer** (or they tear): draw into
-  `canvas = matrix.CreateFrameCanvas()`, then `canvas = matrix.SwapOnVSync(canvas)`
-  each frame. Do NOT call `matrix.SetImage()` directly on the live matrix in a loop.
-- **Panel config lives in ONE place:** `core/panel.py` `build_matrix()` — stock
-  `hardware_mapping='adafruit-hat'`, `multiplexing=0`, defaults. Do NOT add
-  FM6126A or sweep multiplexing values. If the panel bands / half-lights, it's the
-  **E address line (GPIO 24) / solder / a broken build — never multiplexing.**
-  See `pi_apps/led_matrix/led-matrix-setup.md`.
-- Keep brightness modest (≈40–60); full white draws a lot of current.
+- **Backgrounds are OFF, not a dark color.** Fill with pure black `(0,0,0)` so
+  unlit pixels are truly off. Never a dark tint — it dimly lights every pixel.
+- **This panel is BGR-wired:** the rgbmatrix backend sets `led_rgb_sequence=BGR`.
+  Schema colors are normal RGB; the backend corrects the order. Don't "fix"
+  colors by swapping channels in scenes.
+- **Panel config lives in ONE place:** `panel/src/panel/backends/rgbmatrix.py` —
+  stock `adafruit-hat`, `multiplexing=0`, E on **GPIO 24** (bonnet "8" pad
+  soldered). If the panel bands/half-lights, it's the **E line / solder / a broken
+  build — never multiplexing.** See `led-matrix-setup.md`.
+- Build the library with `make LTO_FLAGS= -j2` (LTO OOMs on 512 MB). Keep
+  brightness modest.
+- **Animations must double-buffer** (the renderer already does via `SwapOnVSync`).
 
-## Layout
+## Security model
 
-- `pi_apps/led_matrix/scenes/{everyday,party,scratch}/` — scenes
-- `pi_apps/led_matrix/core/panel.py` — `build_matrix()` + `load_font()`
-- `pi_apps/led_matrix/display`, `run.sh` — launchers
-- `pi_apps/led_matrix/led-matrix-setup.md` — hardware/build/repair runbook
-- `pi_apps/led_matrix/diagnostics/` — troubleshooting tools
+The socket (root:panel, 0660) is the boundary; a VPN/tunnel is the network
+boundary (no app-level auth yet — do not expose publicly as-is). The daemon
+re-validates every scene even though the API did — that re-check is what protects
+the device.

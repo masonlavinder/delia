@@ -53,7 +53,7 @@ class Fit(StrEnum):
     COVER = "cover"
 
 
-ALL_LAYER_TYPES: tuple[str, ...] = ("solid", "text", "scroll", "clock", "image")
+ALL_LAYER_TYPES: tuple[str, ...] = ("solid", "text", "scroll", "clock", "image", "gif")
 
 # Generous sanity bounds on coordinates; per-device panel bounds are enforced
 # separately by validate_scene() against Capabilities.
@@ -138,8 +138,20 @@ class ImageLayer(_StrictLayer):
     fit: Fit = Fit.NONE
 
 
+class GifLayer(_StrictLayer):
+    """An animated GIF asset, looping. Frame shown is a pure function of elapsed
+    time, so it stays correct across dropped frames."""
+
+    type: Literal["gif"] = "gif"
+    asset_id: str = Field(pattern=_ASSET_ID_PATTERN)
+    x: int = Field(default=0, **_COORD)
+    y: int = Field(default=0, **_COORD)
+    fit: Fit = Fit.COVER
+    fps: int = Field(default=15, ge=1, le=60)
+
+
 Layer = Annotated[
-    Union[SolidLayer, TextLayer, ScrollLayer, ClockLayer, ImageLayer],
+    Union[SolidLayer, TextLayer, ScrollLayer, ClockLayer, ImageLayer, GifLayer],
     Field(discriminator="type"),
 ]
 
@@ -252,7 +264,7 @@ if __name__ == "__main__":
 
 __all__ = [
     "FontName", "Align", "Direction", "Fit", "Color",
-    "SolidLayer", "TextLayer", "ScrollLayer", "ClockLayer", "ImageLayer",
+    "SolidLayer", "TextLayer", "ScrollLayer", "ClockLayer", "ImageLayer", "GifLayer",
     "Layer", "Scene", "Capabilities", "PANEL_CAPABILITIES",
     "ALL_LAYER_TYPES", "SceneCapabilityError", "validate_scene",
     "export_schema", "ValidationError",

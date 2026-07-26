@@ -33,6 +33,12 @@ SCENES: dict[str, dict] = {
         {"type": "scroll", "content": "delia panel online", "font": "7x13", "color": [0, 200, 120],
          "y": 38, "speed_px_s": 30, "direction": "left"},
     ]},
+    "plasma": {"name": "plasma", "layers": [
+        {"type": "gif", "asset_id": "plasma", "fit": "cover", "fps": 10},
+    ]},
+    "rocket": {"name": "rocket", "layers": [
+        {"type": "gif", "asset_id": "rocket", "fit": "cover", "fps": 12},
+    ]},
 }
 
 app = Flask(__name__)
@@ -105,7 +111,7 @@ PAGE = """<!doctype html>
   <div class="sub" id="status">loading…</div>
   <div class="grid" id="grid"></div>
 <script>
-const EMOJI = { clock:"🕐", hello:"👋", scroll:"🔤" };
+const EMOJI = { clock:"🕐", hello:"👋", scroll:"🔤", plasma:"🌀", rocket:"🚀" };
 let current = null;
 
 async function load() {
