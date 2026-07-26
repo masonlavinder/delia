@@ -24,7 +24,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 # The panel package is installed system-wide; the client is pure Python (no GPIO).
 from panel.client import PanelClient
 
-from scenes import SCENE_EMOJI, SCENES
+from scenes import compose, list_backgrounds, list_overlays
 
 CLIENT_DIST = Path(__file__).resolve().parent.parent / "client" / "dist"
 
@@ -35,26 +35,50 @@ app = Flask(__name__, static_folder=str(CLIENT_DIST), static_url_path="")
 
 # ---------------------------------------------------------------- control API
 
-@app.get("/api/scenes")
-def api_scenes():
-    current = None
+def _current_scene():
     try:
         state = client.get_state()
-        if state.get("ok"):
-            current = state.get("scene")
+        return state.get("scene") if state.get("ok") else None
     except OSError:
-        pass  # daemon down -> report nothing playing
-    scenes = [{"name": n, "emoji": SCENE_EMOJI.get(n)} for n in SCENES]
-    return jsonify(scenes=scenes, current=current)
+        return None  # daemon down -> report nothing playing
+
+
+@app.get("/api/backgrounds")
+def api_backgrounds():
+    return jsonify(backgrounds=list_backgrounds(), current=_current_scene())
+
+
+@app.get("/api/overlays")
+def api_overlays():
+    return jsonify(overlays=list_overlays())
+
+
+@app.get("/api/scenes")
+def api_scenes():
+    # Back-compat alias: older clients treat each background as a tappable "scene".
+    return jsonify(scenes=list_backgrounds(), current=_current_scene())
 
 
 @app.post("/api/scene")
 def api_scene():
-    name = (request.get_json(silent=True) or {}).get("name")
-    if name not in SCENES:
-        return jsonify(ok=False, error="unknown scene"), 400
+    """Set a scene = a background + optional overlays.
+
+    Body: {"background": "plasma", "overlays": ["clock"]}
+    ({"name": "plasma"} is still accepted and means the background alone.)
+    """
+    body = request.get_json(silent=True) or {}
+    background = body.get("background") or body.get("name")
+    overlays = body.get("overlays") or []
+    if not background:
+        return jsonify(ok=False, error="background required"), 400
+    if not isinstance(overlays, list):
+        return jsonify(ok=False, error="overlays must be a list"), 400
     try:
-        result = client.set_scene(SCENES[name])
+        scene = compose(background, overlays, brightness=body.get("brightness"))
+    except KeyError as exc:
+        return jsonify(ok=False, error=str(exc)), 400
+    try:
+        result = client.set_scene(scene)
     except OSError as exc:
         return jsonify(ok=False, error=f"renderer unreachable: {exc}"), 503
     return jsonify(result), (200 if result.get("ok") else 400)
