@@ -65,7 +65,7 @@ root only). Install into system Python:
 
 ```bash
 sudo pip install --break-system-packages "pydantic>=2" pillow
-sudo pip install --break-system-packages -e /home/mlavinder/delia/panel
+sudo pip install --break-system-packages -e /home/mlavinder/delia/matrix
 
 # create the group the socket is shared through, add the api user to it
 sudo groupadd -f panel && sudo usermod -aG panel mlavinder
@@ -80,7 +80,7 @@ python3 -m panel.client get-state
 
 ### systemd
 
-`systemd/panel-renderer.service` (root) and `panel-api.service` (unprivileged).
+`raspberry_pi/systemd/panel-renderer.service` (root) and `panel-api.service` (unprivileged).
 Install but **do not auto-enable** — that's the operator's call:
 
 ```bash

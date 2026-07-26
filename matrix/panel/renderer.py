@@ -21,7 +21,7 @@ from PIL import Image
 from .backends.base import LoadedFont, MatrixBackend
 from .schema import Align, Capabilities, Direction, Fit, Scene
 
-DEFAULT_ASSETS_DIR = "/home/mlavinder/delia/panel/assets"
+DEFAULT_ASSETS_DIR = "/home/mlavinder/delia/matrix/assets"
 _UNSET = object()
 
 

@@ -12,7 +12,7 @@ RuntimeDirectoryMode=0750
 Environment=PANEL_BACKEND=rgbmatrix
 Environment=PANEL_SOCK=/run/panel/panel.sock
 Environment=PANEL_FONTS_DIR=/home/mlavinder/rpi-rgb-led-matrix/fonts
-Environment=PANEL_ASSETS_DIR=/home/mlavinder/delia/panel/assets
+Environment=PANEL_ASSETS_DIR=/home/mlavinder/delia/matrix/assets
 ExecStart=/usr/bin/python3 -m panel.daemon
 Restart=always
 RestartSec=2
