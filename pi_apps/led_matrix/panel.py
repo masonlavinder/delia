@@ -15,18 +15,15 @@ def build_matrix(brightness=50):
     options.chain_length = 1     # a single panel
     options.parallel = 1
 
-    # 'adafruit-hat' expects the E address line on pin 8 -- matches the E->8
-    # solder jumper required for this 64-tall ABCDE panel.
-    # If you also solder the GPIO4<->GPIO18 jumper (optional, flicker-free
-    # quality via hardware PWM), change this to 'adafruit-hat-pwm'.
+    # 'adafruit-hat' -- REQUIRES the library patch that puts the E address line
+    # on GPIO 24 (see led-matrix-setup.md "THE CRITICAL FIX"). The bonnet wires
+    # E to GPIO 24; stock hzeller must be edited to match, or you get the
+    # 16-on/16-off banding. Solder-wise, E is bridged to the "8" pad (HUB75 pin).
     options.hardware_mapping = 'adafruit-hat'
 
-    # Adafruit 6484 (128x64, 2mm) uses FM6126A driver chips -> needs the init
-    # sequence or it shows garbage/split content.
-    options.panel_type = 'FM6126A'
-    # NOTE: this panel's scan mapping isn't fully solved yet. multiplexing=17
-    # (FlippedStripe) gets closest to full coverage; still being dialed in.
-    options.multiplexing = 17
+    # Known-good config (see led-matrix-setup.md). These are library defaults,
+    # kept explicit for clarity. FM6126A init is NOT needed once E is on GPIO 24.
+    options.multiplexing = 0
     options.row_address_type = 0
 
     # Pi 3-class board. 2 is a good start; raise toward 4 if you see

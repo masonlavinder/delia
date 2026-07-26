@@ -28,9 +28,13 @@ banding / "every other row missing". You must:
 
 This is separate from (and unrelated to) the optional GPIO4↔GPIO18 PWM jumper.
 
-Software side (already set in `panel.py`): `panel_type='FM6126A'`,
-`hardware_mapping='adafruit-hat'`, rows=64, cols=128, multiplexing=0,
-row_address_type=0.
+Software side (already set in `panel.py`): `hardware_mapping='adafruit-hat'`
+(stock hzeller drives E on **GPIO 24** — where the "8" solder pad lands),
+rows=64, cols=128, multiplexing=0, row_address_type=0. No FM6126A init needed.
+
+> ✅ **WORKING CONFIG CONFIRMED** — the full 128x64 panel lights cleanly.
+> The authoritative build/repair procedure is **[led-matrix-setup.md](led-matrix-setup.md)**
+> — read that if you ever reflash the SD card or the panel misbehaves.
 
 ### ⚠️ Power — read this first
 
