@@ -10,8 +10,8 @@ Type=simple
 User=mlavinder
 SupplementaryGroups=panel
 Environment=PANEL_SOCK=/run/panel/panel.sock
-WorkingDirectory=/home/mlavinder/delia/panel/web
-ExecStart=/usr/bin/python3 /home/mlavinder/delia/panel/web/server.py
+WorkingDirectory=/home/mlavinder/delia/web_app
+ExecStart=/usr/bin/python3 /home/mlavinder/delia/web_app/server.py
 Restart=always
 RestartSec=2
 

@@ -55,11 +55,13 @@ class RGBMatrixBackend:
         opts.chain_length = 1
         opts.parallel = 1
         opts.hardware_mapping = "adafruit-hat"
-        opts.gpio_slowdown = 2
+        opts.gpio_slowdown = int(os.environ.get("PANEL_GPIO_SLOWDOWN", "2"))
         opts.brightness = 40
-        # Higher refresh -> fewer flashing lines on busy full-panel scenes.
-        # 8 bits is plenty for smooth gradients; tune via PANEL_PWM_BITS.
-        opts.pwm_bits = int(os.environ.get("PANEL_PWM_BITS", "8"))
+        # Refresh tuning: busy full-panel scenes (plasma) flash if the refresh
+        # rate is too low. Lower pwm_bits + shorter LSB pulse -> higher refresh
+        # (small color-depth cost). All tunable via env to iterate on hardware.
+        opts.pwm_bits = int(os.environ.get("PANEL_PWM_BITS", "7"))
+        opts.pwm_lsb_nanoseconds = int(os.environ.get("PANEL_PWM_LSB_NS", "100"))
         # This panel is wired BGR: without this, red<->blue are swapped. One
         # setting corrects Fill/DrawText/SetImage uniformly. Override if a future
         # panel differs.
