@@ -24,13 +24,38 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 # The panel package is installed system-wide; the client is pure Python (no GPIO).
 from panel.client import PanelClient
 
-from scenes import compose, list_backgrounds, list_overlays
+from scenes import compose, has_dynamic, list_backgrounds, list_overlays, recompose
 
 CLIENT_DIST = Path(__file__).resolve().parent.parent / "client" / "dist"
 
 client = PanelClient(sock_path=os.environ.get("PANEL_SOCK", "/run/panel/panel.sock"))
 
 app = Flask(__name__, static_folder=str(CLIENT_DIST), static_url_path="")
+
+
+def _refresh_dynamic_scenes(interval_s: int = 600) -> None:
+    """Periodically re-apply the active scene if it has a live overlay (weather),
+    so its data doesn't go stale. Static scenes are left untouched."""
+    import threading
+    import time
+
+    def loop():
+        while True:
+            time.sleep(interval_s)
+            try:
+                state = client.get_state()
+                name = state.get("scene") if state.get("ok") else None
+                if name and has_dynamic(name):
+                    scene = recompose(name)
+                    if scene:
+                        client.set_scene(scene)
+            except Exception:
+                pass  # transient (daemon/network) -> try again next tick
+
+    threading.Thread(target=loop, name="weather-refresh", daemon=True).start()
+
+
+_refresh_dynamic_scenes()
 
 
 # ---------------------------------------------------------------- control API
