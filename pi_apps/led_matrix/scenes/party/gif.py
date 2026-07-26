@@ -37,10 +37,12 @@ except EOFError:
     pass
 print(f"Loaded {len(frames)} frames from {os.path.basename(path)}")
 
+canvas = matrix.CreateFrameCanvas()   # offscreen buffer -> no tearing
 try:
     while True:
         for frame, delay in zip(frames, delays):
-            matrix.SetImage(frame)
+            canvas.SetImage(frame)
+            canvas = matrix.SwapOnVSync(canvas)
             time.sleep(max(delay, 0.02))
 except KeyboardInterrupt:
     matrix.Clear()
