@@ -28,6 +28,12 @@ web API (mlavinder, group panel)  --newline JSON-->  /run/panel/panel.sock
   every payload, structured errors, clean SIGTERM shutdown. No shelling out, no
   dynamic evaluation, no unsafe deserialization.
 - `client.py` — thin sync client + CLI.
+- `web/server.py` — the phone web UI (Flask, unprivileged); talks to the daemon
+  via `panel.client`. Runs as the `panel-api` service.
+- `hardware/` — the build/repair runbook (`led-matrix-setup.md`), SD-card
+  headless setup (`pi-setup/`), and diagnostics (`check-address-lines.py`,
+  `tune-slowdown.sh`).
+- `assets/` — image/gif assets referenced by `asset_id`. `tools/` — asset generators.
 
 ## Layer types
 

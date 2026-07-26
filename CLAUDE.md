@@ -23,10 +23,13 @@ phone -> web app (panel-api, user mlavinder, group panel)
   `asset_id` (regex, resolved+contained under `panel/assets/`). `renderer.py` is a
   render loop; `daemon.py` is the trust boundary; `backends/` has `rgbmatrix`
   (real, root) and `mock` (Pillow, for tests). See `panel/README.md`.
-- `pi_apps/led_matrix/web/server.py` — the phone web UI (Flask). Unprivileged;
-  talks to the daemon via `panel.client`. Built-in scenes live in its `SCENES` dict.
-- `pi_apps/led_matrix/led-matrix-setup.md` — hardware build/repair runbook.
-- `pi_apps/led_matrix/diagnostics/` — troubleshooting tools.
+- `panel/web/server.py` — the phone web UI (Flask). Unprivileged; talks to the
+  daemon via `panel.client`. Built-in scenes live in its `SCENES` dict.
+- `panel/hardware/led-matrix-setup.md` — hardware build/repair runbook
+  (`panel/hardware/pi-setup/` covers reflashing the SD card headless).
+- `panel/hardware/` — diagnostics (`check-address-lines.py`, `tune-slowdown.sh`).
+
+Everything for the panel now lives under `panel/`; there is no `pi_apps/`.
 
 Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
 `panel-api` (mlavinder). The old CLI/direct-GPIO approach (`display`, `run.sh`,
@@ -39,11 +42,10 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
 - Edit, then deploy to the Pi and restart:
   ```
   rsync -az --exclude .venv --exclude __pycache__ panel mlavinder@delia-pi.local:~/delia/
-  rsync -az pi_apps/led_matrix/web/server.py mlavinder@delia-pi.local:~/delia/pi_apps/led_matrix/web/
   # on the Pi (needs a password now — see below):
   sudo systemctl restart panel-renderer panel-api
   ```
-- **Add a scene:** add a declarative document to `SCENES` in `web/server.py`
+- **Add a scene:** add a declarative document to `SCENES` in `panel/web/server.py`
   (built from the layer types). For an animation, drop a `.gif` in `panel/assets/`
   and reference it with a `gif` layer (`asset_id` = filename without extension).
 - Reach the Pi: `ssh mlavinder@delia-pi.local` (passwordless SSH key).
