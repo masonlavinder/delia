@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchBackgrounds, fetchOverlays, setBrightness, setScene, turnOff } from './api'
-import type { Item } from './api'
+import type { Item, Overlay, OverlaySel, Params } from './api'
 
 const POLL_MS = 5000
 
@@ -30,14 +30,19 @@ function hexToRgb(hex: string): [number, number, number] {
 
 /**
  * Owns all panel state. A scene = one background (a preset or a picked color)
- * + any number of overlays, at a global brightness. Any change recomposes and
- * applies optimistically, then reconciles against the daemon on the next poll.
+ * + any number of overlays, each with its own tunable params (color/font/
+ * position), at a global brightness. Any change recomposes and applies
+ * optimistically, then reconciles against the daemon on the next poll.
+ *
+ * The daemon only reports the composed scene NAME (not params), so param state
+ * lives here and rides along in every composition.
  */
 export function usePanel() {
   const [backgrounds, setBackgrounds] = useState<Item[]>([])
-  const [overlays, setOverlays] = useState<Item[]>([])
+  const [overlays, setOverlays] = useState<Overlay[]>([])
   const [background, setBackground] = useState<string | null>(null)
   const [active, setActive] = useState<string[]>([]) // active overlay names
+  const [params, setParams] = useState<Record<string, Params>>({}) // per-overlay overrides
   const [color, setColorState] = useState('#8b5cf6') // last-picked solid color
   const [brightness, setBrightnessState] = useState(40)
   const [loading, setLoading] = useState(true)
@@ -98,6 +103,13 @@ export function usePanel() {
     [background, active, refresh],
   )
 
+  // overlay names -> selections, attaching each overlay's current param overrides.
+  const select = useCallback(
+    (names: string[], overrides: Record<string, Params> = params): OverlaySel[] =>
+      names.map((n) => ({ name: n, params: overrides[n] ?? {} })),
+    [params],
+  )
+
   // opts for the currently-selected background (carries the color when it's "color")
   const bgOpts = useCallback(
     (bg: string) =>
@@ -106,8 +118,8 @@ export function usePanel() {
   )
 
   const pickBackground = useCallback(
-    (name: string) => apply(name, active, () => setScene(name, active, { brightness })),
-    [apply, active, brightness],
+    (name: string) => apply(name, active, () => setScene(name, select(active), { brightness })),
+    [apply, active, select, brightness],
   )
 
   const toggleOverlay = useCallback(
@@ -115,19 +127,31 @@ export function usePanel() {
       const bg = background ?? backgrounds.find((b) => b.name === 'black')?.name ?? backgrounds[0]?.name
       if (!bg) return
       const next = active.includes(name) ? active.filter((x) => x !== name) : [...active, name]
-      void apply(bg, next, () => setScene(bg, next, bgOpts(bg)))
+      void apply(bg, next, () => setScene(bg, select(next), bgOpts(bg)))
     },
-    [apply, background, active, backgrounds, bgOpts],
+    [apply, background, active, backgrounds, select, bgOpts],
   )
 
   const pickColor = useCallback(
     (hex: string) => {
       setColorState(hex)
       void apply('color', active, () =>
-        setScene('color', active, { color: hexToRgb(hex), brightness }),
+        setScene('color', select(active), { color: hexToRgb(hex), brightness }),
       )
     },
-    [apply, active, brightness],
+    [apply, active, select, brightness],
+  )
+
+  // Tune one parameter of an active overlay (e.g. clock color) and re-apply.
+  const setOverlayParam = useCallback(
+    (name: string, key: string, value: Params[string]) => {
+      const bg = background
+      if (!bg) return
+      const next = { ...params, [name]: { ...(params[name] ?? {}), [key]: value } }
+      setParams(next)
+      void apply(bg, active, () => setScene(bg, select(active, next), bgOpts(bg)))
+    },
+    [apply, background, active, params, select, bgOpts],
   )
 
   const changeBrightness = useCallback((value: number) => {
@@ -142,12 +166,14 @@ export function usePanel() {
     overlays,
     background,
     active,
+    params,
     color,
     brightness,
     loading,
     error,
     pickBackground,
     toggleOverlay,
+    setOverlayParam,
     pickColor,
     changeBrightness,
     off,

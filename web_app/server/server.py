@@ -24,13 +24,18 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 # The panel package is installed system-wide; the client is pure Python (no GPIO).
 from panel.client import PanelClient
 
-from scenes import compose, has_dynamic, list_backgrounds, list_overlays, recompose
+from scenes import compose, list_backgrounds, list_overlays, overlays_have_dynamic
 
 CLIENT_DIST = Path(__file__).resolve().parent.parent / "client" / "dist"
 
 client = PanelClient(sock_path=os.environ.get("PANEL_SOCK", "/run/panel/panel.sock"))
 
 app = Flask(__name__, static_folder=str(CLIENT_DIST), static_url_path="")
+
+# The last scene inputs we applied. The weather refresher re-composes from THIS
+# (not the scene name) so the user's per-overlay params — color, font, position —
+# survive a refresh. Cleared on /api/off.
+_last_request: dict = {}
 
 
 def _refresh_dynamic_scenes(interval_s: int = 600) -> None:
@@ -42,13 +47,11 @@ def _refresh_dynamic_scenes(interval_s: int = 600) -> None:
     def loop():
         while True:
             time.sleep(interval_s)
+            req = dict(_last_request)
+            if not req or not overlays_have_dynamic(req.get("overlays")):
+                continue
             try:
-                state = client.get_state()
-                name = state.get("scene") if state.get("ok") else None
-                if name and has_dynamic(name):
-                    scene = recompose(name)
-                    if scene:
-                        client.set_scene(scene)
+                client.set_scene(compose(**req))
             except Exception:
                 pass  # transient (daemon/network) -> try again next tick
 
@@ -98,15 +101,20 @@ def api_scene():
         return jsonify(ok=False, error="background required"), 400
     if not isinstance(overlays, list):
         return jsonify(ok=False, error="overlays must be a list"), 400
+    brightness, color = body.get("brightness"), body.get("color")
     try:
-        scene = compose(background, overlays,
-                         brightness=body.get("brightness"), color=body.get("color"))
+        scene = compose(background, overlays, brightness=brightness, color=color)
     except KeyError as exc:
         return jsonify(ok=False, error=str(exc)), 400
     try:
         result = client.set_scene(scene)
     except OSError as exc:
         return jsonify(ok=False, error=f"renderer unreachable: {exc}"), 503
+    if result.get("ok"):
+        # Remember exactly what we applied so the weather refresher can rebuild it.
+        _last_request.clear()
+        _last_request.update(background=background, overlays=overlays,
+                             brightness=brightness, color=color)
     return jsonify(result), (200 if result.get("ok") else 400)
 
 
@@ -130,6 +138,7 @@ def api_off():
         client.clear()
     except OSError as exc:
         return jsonify(ok=False, error=str(exc)), 503
+    _last_request.clear()  # nothing playing -> nothing for the refresher to rebuild
     return jsonify(ok=True)
 
 

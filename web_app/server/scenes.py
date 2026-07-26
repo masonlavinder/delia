@@ -11,6 +11,10 @@ Two building blocks, one place to manage them:
 layers first, then each overlay's layers on top. The daemon composites layers
 back-to-front, so overlays draw over the background.
 
+Overlays are tunable: each exposes an editable-parameter spec (color / font /
+position) derived from its layer, and callers can pass per-overlay overrides
+that get applied before compositing. The daemon re-validates everything.
+
 Everything here must stay expressible in matrix/panel/schema.py (the contract).
 Backgrounds are pure black where unlit -> those pixels stay OFF (a dark tint
 would dimly light the whole panel).
@@ -19,10 +23,44 @@ from __future__ import annotations
 
 import os
 
+# Fonts available on the panel (must match matrix/panel/schema.py FontName).
+FONTS = ["4x6", "5x7", "6x10", "7x13", "9x18", "10x20"]
+
+# Layer fields a user may tune. `_params_for` derives a spec from a layer so the
+# client knows which controls to show; `_apply_params` writes overrides back.
+_TUNABLE = ("color", "font", "x", "y")
+
+
+def _params_for(layer: dict) -> dict:
+    """Editable-parameter spec for a layer: what to tune and how to present it."""
+    spec: dict = {}
+    if "color" in layer:
+        spec["color"] = {"type": "color", "default": layer["color"]}
+    if "font" in layer:
+        spec["font"] = {"type": "font", "options": FONTS, "default": layer["font"]}
+    if "x" in layer:
+        spec["x"] = {"type": "int", "min": 0, "max": 128, "default": layer["x"]}
+    if "y" in layer:
+        spec["y"] = {"type": "int", "min": 0, "max": 64, "default": layer["y"]}
+    return spec
+
+
+def _apply_params(layer: dict, params: dict | None) -> dict:
+    """Write caller overrides onto a layer, ignoring anything not tunable."""
+    for key, val in (params or {}).items():
+        if key in _TUNABLE:
+            layer[key] = val
+    return layer
+
+
 # --- weather (Open-Meteo, no API key). Change location via env or here. ------
 WEATHER_LAT = float(os.environ.get("PANEL_WEATHER_LAT", "0.00"))     # REDACTED
 WEATHER_LON = float(os.environ.get("PANEL_WEATHER_LON", "0.00"))
 WEATHER_UNIT = os.environ.get("PANEL_WEATHER_UNIT", "fahrenheit")      # or "celsius"
+
+# Position/font/color of the weather readout; `content` is filled in live.
+_WEATHER_TEMPLATE = {"type": "text", "content": "--", "font": "7x13",
+                     "color": [255, 255, 255], "x": 100, "y": 12}
 
 
 def _fetch_temp() -> int:
@@ -35,14 +73,14 @@ def _fetch_temp() -> int:
     return round(requests.get(url, timeout=8).json()["current"]["temperature_2m"])
 
 
-def _weather_layers() -> list[dict]:
+def _weather_layers(params: dict | None = None) -> list[dict]:
+    layer = _apply_params(dict(_WEATHER_TEMPLATE), params)
     unit = "F" if WEATHER_UNIT == "fahrenheit" else "C"
     try:
-        text = f"{_fetch_temp()}{unit}"
+        layer["content"] = f"{_fetch_temp()}{unit}"
     except Exception:
-        text = "--"   # network hiccup -> placeholder, never crash a scene
-    return [{"type": "text", "content": text, "font": "7x13",
-             "color": [120, 200, 255], "x": 100, "y": 12}]
+        layer["content"] = "--"   # network hiccup -> placeholder, never crash a scene
+    return [layer]
 
 
 # --- BACKGROUNDS -----------------------------------------------------------
@@ -61,7 +99,7 @@ BACKGROUNDS: dict[str, dict] = {
 
 # --- OVERLAYS --------------------------------------------------------------
 # Drawn on top of whatever background is chosen. Keep them readable on any bg
-# (bright colors, near the panel edges).
+# (bright colors, near the panel edges). Their color/font/position are tunable.
 OVERLAYS: dict[str, dict] = {
     "clock": {"emoji": "🕐", "layers": [
         {"type": "clock", "format": "%-I:%M", "font": "10x20",
@@ -69,15 +107,17 @@ OVERLAYS: dict[str, dict] = {
     ]},
     "date": {"emoji": "📅", "layers": [
         {"type": "clock", "format": "%a %b %-d", "font": "6x10",
-         "color": [210, 210, 210], "x": 30, "y": 60},
+         "color": [255, 255, 255], "x": 30, "y": 60},
     ]},
     "label": {"emoji": "🔤", "layers": [
         {"type": "scroll", "content": "delia", "font": "7x13",
-         "color": [0, 200, 120], "y": 12, "speed_px_s": 25, "direction": "left"},
+         "color": [255, 255, 255], "y": 12, "speed_px_s": 25, "direction": "left"},
     ]},
-    # Dynamic: `build` is called at compose time (fetches live data). The server
-    # re-composes weather-bearing scenes periodically so the temp stays fresh.
-    "weather": {"emoji": "🌡️", "build": _weather_layers},
+    # Dynamic: `build(params)` is called at compose time (fetches live data) and
+    # applies the same tunable overrides. `template` describes its editable params
+    # without a network round-trip. The server re-composes weather-bearing scenes
+    # periodically so the temp stays fresh.
+    "weather": {"emoji": "🌡️", "build": _weather_layers, "template": _WEATHER_TEMPLATE},
 }
 
 
@@ -86,13 +126,25 @@ def _slug(text: str) -> str:
     return out.strip("-") or "scene"
 
 
-def compose(background: str, overlays: list[str] | None = None,
+def _norm_overlays(overlays: list | None) -> list[tuple[str, dict]]:
+    """Accept overlays as bare names or {"name", "params"} objects -> pairs."""
+    pairs: list[tuple[str, dict]] = []
+    for o in (overlays or []):
+        if isinstance(o, str):
+            pairs.append((o, {}))
+        elif isinstance(o, dict) and o.get("name"):
+            pairs.append((o["name"], o.get("params") or {}))
+    return pairs
+
+
+def compose(background: str, overlays: list | None = None,
             brightness: int | None = None, color: list[int] | None = None) -> dict:
     """Build a Scene document: background layers, then overlay layers on top.
 
     The special background "color" is a generic solid of the given RGB `color`.
+    Each overlay may carry per-overlay `params` (color/font/x/y overrides).
     """
-    overlays = overlays or []
+    pairs = _norm_overlays(overlays)
     if background == "color":
         layers = [{"type": "solid", "color": color or [0, 0, 0]}]
         bg_brightness = None
@@ -102,14 +154,20 @@ def compose(background: str, overlays: list[str] | None = None,
         bg = BACKGROUNDS[background]
         layers = [dict(layer) for layer in bg["layers"]]
         bg_brightness = bg.get("brightness")
-    for name in overlays:
+    for name, params in pairs:
         ov = OVERLAYS.get(name)
         if ov is None:
             raise KeyError(f"unknown overlay: {name!r}")
-        ov_layers = ov["build"]() if "build" in ov else ov["layers"]
-        layers += [dict(layer) for layer in ov_layers]
+        if "build" in ov:
+            ov_layers = ov["build"](params)
+        else:
+            ov_layers = [dict(layer) for layer in ov["layers"]]
+            if ov_layers:
+                _apply_params(ov_layers[0], params)  # overrides land on the primary layer
+        layers += ov_layers
 
-    scene = {"name": _slug("-".join([background, *overlays])), "layers": layers}
+    names = [name for name, _ in pairs]
+    scene = {"name": _slug("-".join([background, *names])), "layers": layers}
     b = brightness if brightness is not None else bg_brightness
     if b is not None:
         scene["brightness"] = b
@@ -121,19 +179,14 @@ def list_backgrounds() -> list[dict]:
 
 
 def list_overlays() -> list[dict]:
-    return [{"name": n, "emoji": o.get("emoji")} for n, o in OVERLAYS.items()]
+    """Overlays plus each one's editable-parameter spec (for the UI editors)."""
+    out = []
+    for n, o in OVERLAYS.items():
+        template = o["template"] if "template" in o else o["layers"][0]
+        out.append({"name": n, "emoji": o.get("emoji"), "params": _params_for(template)})
+    return out
 
 
-def has_dynamic(scene_name: str) -> bool:
-    """True if a composed scene name includes an overlay with live data (weather)."""
-    return any(p in OVERLAYS and "build" in OVERLAYS[p] for p in scene_name.split("-"))
-
-
-def recompose(scene_name: str) -> dict | None:
-    """Rebuild a composed scene from its name, re-running dynamic overlays so
-    their content refreshes. None if the name has no known background."""
-    parts = scene_name.split("-")
-    background = next((p for p in parts if p in BACKGROUNDS), None)
-    if background is None:
-        return None
-    return compose(background, [p for p in parts if p in OVERLAYS])
+def overlays_have_dynamic(overlays: list | None) -> bool:
+    """True if any of these overlays fetches live data (weather)."""
+    return any("build" in (OVERLAYS.get(n) or {}) for n, _ in _norm_overlays(overlays))

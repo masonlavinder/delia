@@ -2,6 +2,7 @@ import { BrightnessSlider } from './components/BrightnessSlider'
 import { ColorPicker } from './components/ColorPicker'
 import { OffButton } from './components/OffButton'
 import { OverlayChip } from './components/OverlayChip'
+import { OverlayEditor } from './components/OverlayEditor'
 import { SceneButton } from './components/SceneButton'
 import { usePanel } from './usePanel'
 
@@ -11,16 +12,20 @@ export function App() {
     overlays,
     background,
     active,
+    params,
     color,
     brightness,
     loading,
     error,
     pickBackground,
     toggleOverlay,
+    setOverlayParam,
     pickColor,
     changeBrightness,
     off,
   } = usePanel()
+
+  const activeOverlays = overlays.filter((o) => active.includes(o.name))
 
   let status: string
   if (error) status = error
@@ -62,6 +67,19 @@ export function App() {
           />
         ))}
       </div>
+
+      {activeOverlays.length > 0 && (
+        <div className="editors">
+          {activeOverlays.map((o) => (
+            <OverlayEditor
+              key={o.name}
+              overlay={o}
+              values={params[o.name] ?? {}}
+              onChange={(key, value) => setOverlayParam(o.name, key, value)}
+            />
+          ))}
+        </div>
+      )}
     </main>
   )
 }

@@ -178,6 +178,72 @@ h1 {
   accent-color: #8b5cf6;
 }
 
+/* Per-overlay parameter editors: one card per active overlay. */
+.editors {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.editor {
+  border: 1px solid #22c55e44;
+  background: #0f1a12;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.editor-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.field > span {
+  font-size: 13px;
+  color: #b8b8c8;
+}
+
+.field input[type='range'] {
+  flex: 1;
+  max-width: 60%;
+  height: 26px;
+  accent-color: #22c55e;
+}
+
+.field input[type='color'] {
+  width: 44px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #2a2a3c;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.field select {
+  appearance: none;
+  background: #16161f;
+  color: #e8e8f0;
+  border: 1px solid #2a2a3c;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scene,
   .chip {

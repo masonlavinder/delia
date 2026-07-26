@@ -6,6 +6,21 @@ export type Item = {
   emoji: string | null
 }
 
+/** One tunable parameter of an overlay, as described by the server. */
+export type ParamSpec =
+  | { type: 'color'; default: [number, number, number] }
+  | { type: 'font'; options: string[]; default: string }
+  | { type: 'int'; min: number; max: number; default: number }
+
+export type ParamValue = [number, number, number] | string | number
+export type Params = Record<string, ParamValue>
+
+/** An overlay plus the spec of what's editable about it (color/font/position). */
+export type Overlay = Item & { params: Record<string, ParamSpec> }
+
+/** An overlay selection sent to the panel: its name + any param overrides. */
+export type OverlaySel = { name: string; params?: Params }
+
 export type BackgroundsState = {
   backgrounds: Item[]
   /** Composed name of the scene rendering now (e.g. "plasma-clock"), or null when off. */
@@ -31,16 +46,17 @@ export function fetchBackgrounds(): Promise<BackgroundsState> {
   return request<BackgroundsState>('/api/backgrounds')
 }
 
-export function fetchOverlays(): Promise<{ overlays: Item[] }> {
-  return request<{ overlays: Item[] }>('/api/overlays')
+export function fetchOverlays(): Promise<{ overlays: Overlay[] }> {
+  return request<{ overlays: Overlay[] }>('/api/overlays')
 }
 
 /** Set the panel to a background with zero or more overlays composited on top.
- * `color` is used when background is "color"; `brightness` (1-100) rides along
- * so it persists across scene switches. */
+ * Each overlay may carry `params` overrides (color/font/position). `color` is
+ * used when background is "color"; `brightness` (1-100) rides along so it
+ * persists across scene switches. */
 export function setScene(
   background: string,
-  overlays: string[],
+  overlays: OverlaySel[],
   opts: { color?: [number, number, number]; brightness?: number } = {},
 ): Promise<Result> {
   return request<Result>('/api/scene', {
