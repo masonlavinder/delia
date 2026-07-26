@@ -1,14 +1,14 @@
 /** Typed wrapper over the Flask control API in `web_app/server`. */
 
-export type Scene = {
+export type Item = {
   name: string
-  /** Presentation hint from the server; may be absent for new scenes. */
+  /** Presentation hint from the server; may be absent. */
   emoji: string | null
 }
 
-export type PanelState = {
-  scenes: Scene[]
-  /** Name of the scene currently rendering, or null when the panel is off. */
+export type BackgroundsState = {
+  backgrounds: Item[]
+  /** Composed name of the scene rendering now (e.g. "plasma-clock"), or null when off. */
   current: string | null
 }
 
@@ -27,14 +27,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body
 }
 
-export function fetchState(): Promise<PanelState> {
-  return request<PanelState>('/api/scenes')
+export function fetchBackgrounds(): Promise<BackgroundsState> {
+  return request<BackgroundsState>('/api/backgrounds')
 }
 
-export function setScene(name: string): Promise<Result> {
+export function fetchOverlays(): Promise<{ overlays: Item[] }> {
+  return request<{ overlays: Item[] }>('/api/overlays')
+}
+
+/** Set the panel to a background with zero or more overlays composited on top. */
+export function setScene(background: string, overlays: string[]): Promise<Result> {
   return request<Result>('/api/scene', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ background, overlays }),
   })
 }
 

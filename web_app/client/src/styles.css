@@ -75,11 +75,11 @@ h1 {
 }
 
 .off {
-  grid-column: 1 / -1;
+  width: 100%;
   background: #1c1420;
   border-color: #442;
   color: #f0a0a0;
-  margin-top: 6px;
+  padding: 16px 12px;
 }
 
 .off.active {
@@ -87,11 +87,61 @@ h1 {
   border-color: #a33;
 }
 
+/* Section headers between the Scenes grid and the Info chips. */
+.section {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a8aa0;
+  margin: 22px 0 10px;
+}
+
+/* Info overlays: multi-select pills, visually distinct from scene buttons. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  appearance: none;
+  border: 1px solid #2a2a3c;
+  background: #16161f;
+  color: #e8e8f0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 80ms ease;
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+/* Green = "info layered on", to contrast with the purple scene selection. */
+.chip.active {
+  background: #14532d;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px #22c55e44;
+}
+
+.emoji-sm {
+  font-size: 18px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .scene {
+  .scene,
+  .chip {
     transition: none;
   }
-  .scene:active {
+  .scene:active,
+  .chip:active {
     transform: none;
   }
 }
