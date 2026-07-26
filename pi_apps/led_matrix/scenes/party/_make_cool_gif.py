@@ -25,11 +25,13 @@ for f in range(N):
                 + math.sin(math.hypot(x - W / 2, y - H / 2) / 12.0 - t)
             )
             n = (v + 4) / 8.0                      # normalize -4..4 -> 0..1
-            r = min(255, int(60 + 170 * n))
-            g = min(255, int(8 + 55 * n * n))      # keep green low so it stays purple
-            b = min(255, int(90 + 165 * n))
+            n = 0.5 + (n - 0.5) * 1.9              # steepen contrast (more drastic dark<->light)
+            n = 0.0 if n < 0 else 1.0 if n > 1 else n
+            r = min(255, int(6 + 116 * n))         # dark ~(6,0,12)  bright ~(122,30,152)
+            g = min(255, int(0 + 30 * n * n))      # keep green low so it stays purple
+            b = min(255, int(12 + 140 * n))
             px[x, y] = (r, g, b)
     frames.append(img)
 
-frames[0].save(OUT, save_all=True, append_images=frames[1:], duration=60, loop=0)
+frames[0].save(OUT, save_all=True, append_images=frames[1:], duration=100, loop=0)
 print(f"wrote {OUT} ({N} frames)")

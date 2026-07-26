@@ -27,9 +27,11 @@ matrix = build_matrix(brightness=60)
 gif = Image.open(path)
 
 frames = []
+delays = []
 try:
     while True:
         frames.append(gif.copy().convert("RGB").resize((matrix.width, matrix.height)))
+        delays.append(gif.info.get("duration", 60) / 1000.0)   # ms -> s, per frame
         gif.seek(gif.tell() + 1)
 except EOFError:
     pass
@@ -37,8 +39,8 @@ print(f"Loaded {len(frames)} frames from {os.path.basename(path)}")
 
 try:
     while True:
-        for frame in frames:
+        for frame, delay in zip(frames, delays):
             matrix.SetImage(frame)
-            time.sleep(0.06)   # ~16 fps
+            time.sleep(max(delay, 0.02))
 except KeyboardInterrupt:
     matrix.Clear()
