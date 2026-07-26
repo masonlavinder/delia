@@ -95,6 +95,18 @@ BACKGROUNDS: dict[str, dict] = {
     "rocket": {"emoji": "🚀", "layers": [
         {"type": "gif", "asset_id": "rocket", "fit": "cover", "fps": 15},
     ]},
+    "starfield": {"emoji": "✨", "layers": [
+        {"type": "gif", "asset_id": "starfield", "fit": "cover", "fps": 12},
+    ]},
+    "matrix": {"emoji": "🟩", "layers": [
+        {"type": "gif", "asset_id": "matrix", "fit": "cover", "fps": 14},
+    ]},
+    "aurora": {"emoji": "🌌", "layers": [
+        {"type": "gif", "asset_id": "aurora", "fit": "cover", "fps": 14},
+    ]},
+    "fireflies": {"emoji": "🐝", "layers": [
+        {"type": "gif", "asset_id": "fireflies", "fit": "cover", "fps": 14},
+    ]},
 }
 
 # --- OVERLAYS --------------------------------------------------------------

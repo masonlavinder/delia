@@ -28,11 +28,18 @@ phone -> React client (static, served by the API)
   tests). See `matrix/README.md`.
 - `web_app/` — the phone UI, a **separate root folder**, itself split
   client/server:
-  - `web_app/server/` — Flask (`server.py` routes, `scenes.py` the built-in
-    `SCENES` dict). Unprivileged; talks to the daemon via `panel.client` (an
-    installed package, so it stands alone). Also static-hosts the built client.
-  - `web_app/client/` — React + TypeScript + Vite SPA. Hardcodes **no** scene
-    list; it renders whatever `/api/scenes` returns. See `web_app/README.md`.
+  - `web_app/server/` — Flask (`server.py` routes, `scenes.py` the
+    `BACKGROUNDS` + `OVERLAYS` registry). A scene is composed at request time:
+    `compose(background, overlays)` stacks the background's layers, then each
+    overlay's layers on top; overlays carry per-instance `params`
+    (color/font/position) overrides. Unprivileged; talks to the daemon via
+    `panel.client` (an installed package, so it stands alone). Also static-hosts
+    the built client.
+  - `web_app/client/` — React + TypeScript + Vite SPA. Hardcodes **no**
+    background/overlay list; it renders whatever `/api/backgrounds` and
+    `/api/overlays` return, including each overlay's editable-parameter spec.
+    A generic color-picker background and a global brightness slider are built
+    in. See `web_app/README.md`.
 - `matrix/raspberry_pi/` — everything Pi-specific: the build/repair runbook
   (`led-matrix-setup.md`), SD-card headless setup (`pi-setup/`), diagnostics
   (`check-address-lines.py`, `tune-slowdown.sh`), and the systemd units.
@@ -67,11 +74,16 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   `matrix/raspberry_pi/systemd/*.service` and rsyncing does nothing on its own —
   the running service keeps its old definition. `./deploy.sh` handles this: it
   compares, and reinstalls + `daemon-reload`s only when they differ.
-- **Add a scene:** add a declarative document to `SCENES` in
-  `web_app/server/scenes.py` (built from the layer types), plus an entry in
-  `SCENE_EMOJI` beside it. The client needs no change and no rebuild. For an
-  animation, drop a `.gif` in `matrix/assets/` and reference it with a `gif`
-  layer (`asset_id` = filename without extension).
+- **Add a background or overlay:** edit the `BACKGROUNDS` / `OVERLAYS` dicts in
+  `web_app/server/scenes.py` — one entry each (`layers` + an `emoji`).
+  Backgrounds are the base (a `solid`, `image`, or `gif`); overlays draw on top
+  (a `clock`, `text`, `scroll`). The client needs no change and no rebuild — it
+  discovers both from the API. For an animation, drop a `.gif` in
+  `matrix/assets/` and reference it with a `gif` layer (`asset_id` = filename
+  without extension). Overlays are **auto-tunable**: any `color`/`font`/`x`/`y`
+  on the primary layer becomes an editable control in the UI (see `_params_for`).
+  The generic "color" background and the global brightness slider are built in,
+  not registry entries.
 - Reach the Pi: `ssh mlavinder@delia-pi.local` (passwordless SSH key).
   **`sudo` now requires a password** (the broad NOPASSWD grant was removed) — to
   run a privileged command in a session, prefix it with `! sudo …`.
