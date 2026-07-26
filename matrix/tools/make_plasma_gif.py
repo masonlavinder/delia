@@ -35,5 +35,8 @@ for f in range(N):
     frames.append(img)
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
-frames[0].save(OUT, save_all=True, append_images=frames[1:], duration=90, loop=0)
-print(f"wrote {OUT} ({N} frames)")
+# GIF is limited to 256 colors -> a smooth gradient bands. Floyd-Steinberg
+# dithering scatters the quantization error so it reads as smooth on the panel.
+dithered = [f.quantize(colors=256, dither=Image.FLOYDSTEINBERG) for f in frames]
+dithered[0].save(OUT, save_all=True, append_images=dithered[1:], duration=90, loop=0)
+print(f"wrote {OUT} ({N} frames, dithered)")
