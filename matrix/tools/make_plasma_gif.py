@@ -38,8 +38,10 @@ for f in range(N):
     frames.append(img)
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
-# GIF is limited to 256 colors -> a smooth gradient bands. Floyd-Steinberg
-# dithering scatters the quantization error so it reads as smooth on the panel.
-dithered = [f.quantize(colors=256, dither=Image.FLOYDSTEINBERG) for f in frames]
-dithered[0].save(OUT, save_all=True, append_images=dithered[1:], duration=90, loop=0)
-print(f"wrote {OUT} ({N} frames, dithered)")
+# GIF is limited to 256 colors. Use ONE shared palette (from a frame; every
+# frame uses the same purple ramp) and NO dithering, so the pattern is stable
+# frame-to-frame -> no "dither crawl" flicker. 256 levels is plenty for this ramp.
+pal = frames[0].quantize(colors=256, dither=Image.Dither.NONE)
+pframes = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
+pframes[0].save(OUT, save_all=True, append_images=pframes[1:], duration=90, loop=0)
+print(f"wrote {OUT} ({N} frames, stable palette)")
