@@ -33,7 +33,7 @@ SCENES: dict[str, dict] = {
         {"type": "scroll", "content": "delia panel online", "font": "7x13", "color": [0, 200, 120],
          "y": 38, "speed_px_s": 30, "direction": "left"},
     ]},
-    "plasma": {"name": "plasma", "layers": [
+    "plasma": {"name": "plasma", "brightness": 20, "layers": [
         {"type": "gif", "asset_id": "plasma", "fit": "cover", "fps": 10},
     ]},
     "rocket": {"name": "rocket", "layers": [

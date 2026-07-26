@@ -124,6 +124,8 @@ class Renderer:
         self.backend = backend
         self.caps = caps
         self.assets_dir = assets_dir or os.environ.get("PANEL_ASSETS_DIR", DEFAULT_ASSETS_DIR)
+        # brightness a scene reverts to when it doesn't set its own
+        self.default_brightness = getattr(backend, "brightness", 100)
         self._lock = threading.Lock()
         self._active: _Prepared | None = None
         self._pending: Any = _UNSET          # _UNSET=no change, None=clear, _Prepared=set
@@ -204,8 +206,9 @@ class Renderer:
             self._active = self._pending
             self._pending = _UNSET
             self._active_start = now
-        if self._active is not None and self._active.scene.brightness is not None:
-            self.backend.set_brightness(self._active.scene.brightness)
+        if self._active is not None:
+            b = self._active.scene.brightness   # per-scene override, else default (no stick)
+            self.backend.set_brightness(b if b is not None else self.default_brightness)
 
     def render_frame(self, now: float | None = None) -> None:
         now = time.monotonic() if now is None else now

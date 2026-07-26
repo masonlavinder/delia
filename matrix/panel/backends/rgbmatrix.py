@@ -56,7 +56,8 @@ class RGBMatrixBackend:
         opts.parallel = 1
         opts.hardware_mapping = "adafruit-hat"
         opts.gpio_slowdown = int(os.environ.get("PANEL_GPIO_SLOWDOWN", "2"))
-        opts.brightness = int(os.environ.get("PANEL_BRIGHTNESS", "40"))
+        self.brightness = int(os.environ.get("PANEL_BRIGHTNESS", "40"))
+        opts.brightness = self.brightness
         # Full color depth (11). Flashing lines that show ONLY on lit pixels are a
         # POWER issue (5V sag under load), not refresh -- lowering pwm_bits doesn't
         # fix it and costs color, so keep it high. Lower PANEL_BRIGHTNESS to reduce
@@ -79,7 +80,8 @@ class RGBMatrixBackend:
         return _RGBCanvas(self._m.SwapOnVSync(canvas.native))
 
     def set_brightness(self, pct: int) -> None:
-        self._m.brightness = max(1, min(100, int(pct)))
+        self.brightness = max(1, min(100, int(pct)))
+        self._m.brightness = self.brightness
 
     def load_font(self, name: FontName) -> LoadedFont:
         if name in self._font_cache:

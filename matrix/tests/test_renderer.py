@@ -117,6 +117,19 @@ def test_gif_layer_animates(tmp_path):
     assert r.backend.last_frame.getpixel((10, 10)) == (0, 255, 0)
 
 
+def test_brightness_per_scene_and_restore():
+    backend = MockBackend(128, 64)           # default brightness 40
+    r = Renderer(backend, PANEL_CAPABILITIES, assets_dir="/nonexistent")
+    r.set_scene(Scene.model_validate({"name": "dim", "brightness": 20,
+                                      "layers": [{"type": "solid", "color": [1, 1, 1]}]}))
+    r.render_frame(0.0)
+    assert backend.brightness == 20
+    r.set_scene(Scene.model_validate({"name": "norm",
+                                      "layers": [{"type": "solid", "color": [1, 1, 1]}]}))
+    r.render_frame(1.0)
+    assert backend.brightness == 40          # restored to default, not stuck at 20
+
+
 def test_fit_contain_and_cover():
     img = Image.new("RGB", (200, 50), (255, 0, 0))
     assert fit_image(img, Fit.CONTAIN, 128, 64).size[0] <= 128
