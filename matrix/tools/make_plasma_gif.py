@@ -26,11 +26,14 @@ for f in range(N):
                 + math.sin((x + y) / 30.0 + t)
                 + math.sin(math.hypot(x - W / 2, y - H / 2) / 18.0 - t)
             )
-            n = (v + 4) / 8.0        # 0..1, NO contrast steepening -> smooth gradient
-            # smooth purple ramp: deep indigo -> violet -> soft magenta
-            r = int(18 + 150 * n)
-            g = int(6 + 46 * n * n)  # keep green low so it stays purple
-            b = int(45 + 165 * n)
+            n = (v + 4) / 8.0        # 0..1, smooth field
+            # Dim regions fall to TRUE black (fewer lit pixels -> less current ->
+            # less power-sag), with a smooth ramp so there's no hard edge.
+            g0 = max(0.0, (n - 0.4) / 0.6)   # 0 below 0.4, 0..1 above
+            glow = g0 * g0                   # ease in -> smooth glow, ~40%+ black
+            r = int(210 * glow)
+            g = int(60 * glow * n)           # keep green low -> stays purple
+            b = int(230 * glow)
             px[x, y] = (min(r, 255), min(g, 255), min(b, 255))
     frames.append(img)
 

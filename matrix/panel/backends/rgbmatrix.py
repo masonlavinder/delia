@@ -63,9 +63,10 @@ class RGBMatrixBackend:
         # fix it and costs color, so keep it high. Lower PANEL_BRIGHTNESS to reduce
         # current draw if the supply/wiring sags on full-panel scenes.
         opts.pwm_bits = int(os.environ.get("PANEL_PWM_BITS", "11"))
-        # Temporal dithering: flickers between adjacent levels to synthesize
-        # in-between shades -> smooths gradient banding on the panel.
-        opts.pwm_dither_bits = int(os.environ.get("PANEL_PWM_DITHER", "2"))
+        # (pwm_dither_bits left off: temporal dithering added visible flicker/lines
+        # on this panel. Enable via PANEL_PWM_DITHER only if you want to try it.)
+        if os.environ.get("PANEL_PWM_DITHER"):
+            opts.pwm_dither_bits = int(os.environ["PANEL_PWM_DITHER"])
         # This panel is wired BGR: without this, red<->blue are swapped. One
         # setting corrects Fill/DrawText/SetImage uniformly. Override if a future
         # panel differs.
