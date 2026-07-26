@@ -10,7 +10,7 @@ included: a first-light test, a live weather display, and a GIF animation player
 
 **It works. This is the known-good state — don't "fix" what isn't broken.**
 
-**Working config** (already in `panel.py`):
+**Working config** (already in `core/panel.py`):
 `hardware_mapping='adafruit-hat'`, `rows=64`, `cols=128`, `multiplexing=0`,
 `row_address_type=0`, `gpio_slowdown=2`. **No FM6126A. No custom multiplexing.**
 Stock `rpi-rgb-led-matrix` — the E address line is GPIO 24 out of the box (no
@@ -28,8 +28,8 @@ bonnet (center pad → `8`). That routes the 64-tall panel's E line to GPIO 24.
 2. **A broken build looks like a panel bug.** On this 512MB Pi the build OOMs
    unless you enable swap and disable LTO — see the runbook. Rebuild cleanly
    before blaming the config.
-3. **`panel.py` on the Pi must match the repo.** After editing it locally,
-   copy it over (`rsync … mlavinder@delia-pi.local:~/delia/pi_apps/led_matrix/`).
+3. **The Pi's files must match the repo.** After editing locally, copy over
+   (`rsync -az … mlavinder@delia-pi.local:~/delia/pi_apps/led_matrix/`).
 
 **Full build/repair procedure:** **[led-matrix-setup.md](led-matrix-setup.md)** —
 read it before touching anything if the panel misbehaves or you reflash the card.
@@ -121,49 +121,52 @@ git clone <your delia repo URL> ~/delia      # or copy the folder over
 cd ~/delia/pi_apps/led_matrix
 ```
 
-## Step 4 — First light 🎉
+## Layout
 
-```bash
-sudo python3 hello.py     # Ctrl-C to stop
+```
+led_matrix/
+├── run.sh                  ← launcher: ./run.sh <scene> (handles sudo + paths)
+├── config.example.py       ← copy to config.py (gitignored), set your location
+├── core/
+│   └── panel.py            ← build_matrix() + load_font(); the ONE place for panel config
+├── scenes/
+│   ├── everyday/           ← always-on info: weather, clock, …
+│   │   ├── weather.py
+│   │   └── clock.py
+│   ├── party/              ← fun/animations
+│   │   └── gif.py          ← plays a GIF (drop .gif files in this folder)
+│   └── scratch/            ← experiments / WIP
+│       └── hello.py        ← first-light color test
+├── diagnostics/            ← troubleshooting tools (see led-matrix-setup.md)
+│   ├── check-address-lines.py
+│   ├── tune-slowdown.sh
+│   └── diag.py
+├── led-matrix-setup.md     ← the runbook (read if the panel ever misbehaves)
+└── requirements.txt
 ```
 
-You should see the panel cycle **red → green → blue → white**. If it does, the
-hardware and library are working. (`sudo` is required — driving the GPIO needs root.)
+## Running scenes
 
-**If the image looks garbled/offset** (some panels vary): edit `panel.py` and try
-`options.gpio_slowdown = 3`, or add `options.multiplexing = 1` (values 0–17 exist;
-1 is a common fix). See the Troubleshooting section below.
-
-## Step 5 — Weather
+Use the launcher (it adds `sudo` + the right import paths):
 
 ```bash
-cp config.example.py config.py
-nano config.py            # set PI_USER, your LAT/LON, and units
-sudo python3 weather.py
+cd ~/delia/pi_apps/led_matrix
+./run.sh                     # lists all scenes
+./run.sh scratch/hello       # first-light color test
+./run.sh everyday/weather    # current temperature
+./run.sh everyday/clock      # time + date
+./run.sh party/gif cool.gif  # play scenes/party/cool.gif
 ```
 
-Uses **Open-Meteo** — free, no API key. Shows the current temp, refreshing every
-10 minutes.
-
-## Step 6 — Animations
+`Ctrl-C` stops any scene. First time, set your location:
 
 ```bash
-# put a .gif in this folder, then:
-sudo python3 animation.py mycoolgif.gif
+cp config.example.py config.py && nano config.py   # LAT / LON / units
 ```
 
-Scales any GIF to 128×64 and loops it.
-
-## Files
-
-| File | What it is |
-|------|-----------|
-| `panel.py` | Shared panel config — all scenes import `build_matrix()` from here. Edit hardware settings in ONE place. |
-| `hello.py` | First-light color-cycle test. |
-| `weather.py` | Current temperature via Open-Meteo (needs `config.py`). |
-| `animation.py` | GIF player. |
-| `config.example.py` | Copy to `config.py` and fill in location. |
-| `requirements.txt` | Python deps (install via apt — see the file). |
+**Adding a scene:** drop a `.py` in the matching `scenes/<group>/` folder,
+start it with the 3-line header from any existing scene (it imports
+`build_matrix`/`load_font` from `core.panel`), and run it with `./run.sh <group>/<name>`.
 
 ## Run a scene automatically on boot (optional, later)
 

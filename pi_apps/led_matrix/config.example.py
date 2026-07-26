@@ -4,10 +4,8 @@
 #   cp config.example.py config.py
 #   nano config.py
 
-PI_USER = "CHANGE_ME"       # your Pi username (used to locate the bundled BDF fonts)
+# Location for the weather scene. Look yours up at https://www.latlong.net
+LAT = 0.00               # latitude   (default: REDACTED)
+LON = 0.00             # longitude
 
-# Your location for the weather scene. Look these up at https://www.latlong.net
-LAT = 40.7128               # latitude
-LON = -74.0060              # longitude
-
-TEMP_UNIT = "fahrenheit"    # "fahrenheit" or "celsius"
+TEMP_UNIT = "fahrenheit"   # "fahrenheit" or "celsius"
