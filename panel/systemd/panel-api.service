@@ -1,0 +1,24 @@
+[Unit]
+Description=LED panel web API (unprivileged, talks to the renderer over a socket)
+Requires=panel-renderer.service
+After=panel-renderer.service
+
+[Service]
+Type=simple
+# Unprivileged. Membership in `panel` is the ONLY thing granting socket access;
+# this process performs no privileged operation.
+User=mlavinder
+SupplementaryGroups=panel
+Environment=PANEL_SOCK=/run/panel/panel.sock
+WorkingDirectory=/home/mlavinder/delia/pi_apps/led_matrix/web
+ExecStart=/usr/bin/python3 /home/mlavinder/delia/pi_apps/led_matrix/web/server.py
+Restart=always
+RestartSec=2
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

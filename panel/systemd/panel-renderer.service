@@ -1,0 +1,32 @@
+[Unit]
+Description=LED panel renderer daemon (owns the matrix, root)
+After=network.target
+
+[Service]
+Type=simple
+# Root is required: the RGB matrix needs direct GPIO / /dev/mem access.
+User=root
+Group=panel
+RuntimeDirectory=panel
+RuntimeDirectoryMode=0750
+Environment=PANEL_BACKEND=rgbmatrix
+Environment=PANEL_SOCK=/run/panel/panel.sock
+Environment=PANEL_FONTS_DIR=/home/mlavinder/rpi-rgb-led-matrix/fonts
+Environment=PANEL_ASSETS_DIR=/home/mlavinder/delia/panel/assets
+ExecStart=/usr/bin/python3 -m panel.daemon
+Restart=always
+RestartSec=2
+
+# --- hardening (verified on this Pi; see notes) ---
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+# NOTES on directives deliberately NOT set, because they break matrix I/O:
+#   PrivateDevices=yes   -> hides /dev/mem, the matrix goes dark. DO NOT enable.
+#   ProtectKernelModules / MemoryDenyWriteExecute -> untested with the C ext; left off.
+# ProtectHome=read-only is fine: the daemon only READS fonts + assets under /home.
+# The socket lives under RuntimeDirectory (/run/panel), which stays writable.
+
+[Install]
+WantedBy=multi-user.target
