@@ -14,6 +14,24 @@ included: a first-light test, a live weather display, and a GIF animation player
 - [x] 128x64 RGB LED matrix panel + its HUB75 ribbon cable
 - [x] Separate **5V power supply, 4A minimum** (5A+ gives headroom)
 
+### ⚠️ REQUIRED: solder the address-E jumper on the Bonnet
+
+This panel (Adafruit 6484) is 64 pixels tall and uses a **non-standard 5-address
+(ABCDE) multiplexing** scheme. The Bonnet does **not** connect the E address line
+by default, so out of the box the panel can only drive half its rows — you get
+banding / "every other row missing". You must:
+
+- Flip the Bonnet over, find the **address-E solder jumper**: three pads labeled
+  `8` — `E` (middle) — `16`.
+- **Bridge the middle `E` pad to the `8` pad** with a blob of solder.
+  (Adafruit panels use `8`; this matches `hardware_mapping='adafruit-hat'`.)
+
+This is separate from (and unrelated to) the optional GPIO4↔GPIO18 PWM jumper.
+
+Software side (already set in `panel.py`): `panel_type='FM6126A'`,
+`hardware_mapping='adafruit-hat'`, rows=64, cols=128, multiplexing=0,
+row_address_type=0.
+
 ### ⚠️ Power — read this first
 
 - Plug the **5V supply into the Bonnet's screw terminals** (watch polarity: + and −).

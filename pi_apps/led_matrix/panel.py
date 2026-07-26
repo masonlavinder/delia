@@ -15,13 +15,22 @@ def build_matrix(brightness=50):
     options.chain_length = 1     # a single panel
     options.parallel = 1
 
-    # 'adafruit-hat' works with the Bonnet out of the box.
-    # If you later solder the GPIO4<->GPIO18 jumper on the Bonnet (better,
-    # flicker-free quality via hardware PWM), change this to 'adafruit-hat-pwm'.
+    # 'adafruit-hat' expects the E address line on pin 8 -- matches the E->8
+    # solder jumper required for this 64-tall ABCDE panel.
+    # If you also solder the GPIO4<->GPIO18 jumper (optional, flicker-free
+    # quality via hardware PWM), change this to 'adafruit-hat-pwm'.
     options.hardware_mapping = 'adafruit-hat'
 
-    # Pi 3-class board. Start at 2; drop to 1 if rock-solid, raise if you see
-    # glitches/tearing.
+    # Adafruit 6484 (128x64, 2mm) uses FM6126A driver chips -> needs the init
+    # sequence or it shows garbage/split content.
+    options.panel_type = 'FM6126A'
+    # NOTE: this panel's scan mapping isn't fully solved yet. multiplexing=17
+    # (FlippedStripe) gets closest to full coverage; still being dialed in.
+    options.multiplexing = 17
+    options.row_address_type = 0
+
+    # Pi 3-class board. 2 is a good start; raise toward 4 if you see
+    # glitches/tearing, drop to 1 if rock-solid.
     options.gpio_slowdown = 2
 
     # 0-100. KEEP THIS LOW at first. Full white at high brightness pulls a lot
