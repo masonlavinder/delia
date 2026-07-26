@@ -17,7 +17,7 @@ phone -> web app (panel-api, user mlavinder, group panel)
         renderer daemon (panel-renderer, root) -> RGBMatrix (GPIO)
 ```
 
-- `panel/` — the system. `src/panel/schema.py` is the **contract** (Pydantic v2,
+- `panel/` — the system. `panel/panel/schema.py` is the **contract** (Pydantic v2,
   strict, bounded, discriminated union on layer `type`). Layers: `solid`, `text`,
   `scroll`, `clock`, `image`, `gif`. Fonts are an enum; images/gifs are an
   `asset_id` (regex, resolved+contained under `panel/assets/`). `renderer.py` is a
@@ -59,7 +59,7 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
 - **This panel is BGR-wired:** the rgbmatrix backend sets `led_rgb_sequence=BGR`.
   Schema colors are normal RGB; the backend corrects the order. Don't "fix"
   colors by swapping channels in scenes.
-- **Panel config lives in ONE place:** `panel/src/panel/backends/rgbmatrix.py` —
+- **Panel config lives in ONE place:** `panel/panel/backends/rgbmatrix.py` —
   stock `adafruit-hat`, `multiplexing=0`, E on **GPIO 24** (bonnet "8" pad
   soldered). If the panel bands/half-lights, it's the **E line / solder / a broken
   build — never multiplexing.** See `led-matrix-setup.md`.

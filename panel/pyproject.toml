@@ -13,7 +13,7 @@ dependencies = ["pydantic>=2", "pillow>=9"]
 dev = ["pytest>=7"]
 
 [tool.setuptools.packages.find]
-where = ["src"]
+include = ["panel*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
