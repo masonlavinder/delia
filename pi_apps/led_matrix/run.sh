@@ -12,7 +12,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 list_scenes() {
-  (cd "$ROOT" && find scenes -name '*.py' | sed 's|scenes/||; s|\.py$||' | sort | sed 's/^/  /')
+  (cd "$ROOT" && find scenes -name '*.py' -not -name '_*' | sed 's|scenes/||; s|\.py$||' | sort | sed 's/^/  /')
 }
 
 if [[ $# -eq 0 ]]; then

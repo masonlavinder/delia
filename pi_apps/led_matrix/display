@@ -19,7 +19,7 @@ SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 ROOT="$(cd "$(dirname "$SELF")" && pwd)"
 SCENES_DIR="$ROOT/scenes"
 
-mapfile -t SCENES < <(cd "$ROOT" && find scenes -name '*.py' -not -name '__*' \
+mapfile -t SCENES < <(cd "$ROOT" && find scenes -name '*.py' -not -name '_*' \
   | sed 's|scenes/||; s|\.py$||' | sort)
 
 desc() { sed -n '1s/^"""//p' "$SCENES_DIR/$1.py" 2>/dev/null | cut -c1-46; }
