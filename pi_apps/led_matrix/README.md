@@ -4,6 +4,38 @@ Drive an Adafruit **128x64 RGB LED Matrix (HUB75, 2mm pitch)** from a
 Raspberry Pi 3 A+ using the **Adafruit RGB Matrix Bonnet**. Starter scenes
 included: a first-light test, a live weather display, and a GIF animation player.
 
+---
+
+## ⭐ READ THIS FIRST (so we never repeat the 4-hour debug)
+
+**It works. This is the known-good state — don't "fix" what isn't broken.**
+
+**Working config** (already in `panel.py`):
+`hardware_mapping='adafruit-hat'`, `rows=64`, `cols=128`, `multiplexing=0`,
+`row_address_type=0`, `gpio_slowdown=2`. **No FM6126A. No custom multiplexing.**
+Stock `rpi-rgb-led-matrix` — the E address line is GPIO 24 out of the box (no
+library patch on a fresh clone).
+
+**The ONE hardware requirement:** the **address-E jumper must be soldered** on the
+bonnet (center pad → `8`). That routes the 64-tall panel's E line to GPIO 24.
+
+**If the panel bands / only lights part of the screen, in priority order:**
+1. **It is the E line, NOT multiplexing.** Do **not** sweep multiplexing/row-addr
+   values — that was a dead-end rabbit hole. Run `sudo -E ./check-address-lines.py`
+   (in `~/rpi-rgb-led-matrix/`): all of A–E must show `OUTPUT levels [0,1]`.
+   16-on/16-off banding = E dead → check the solder joint and that
+   `lib/hardware-mapping.c` `adafruit-hat` reads `GPIO_BIT(24)`.
+2. **A broken build looks like a panel bug.** On this 512MB Pi the build OOMs
+   unless you enable swap and disable LTO — see the runbook. Rebuild cleanly
+   before blaming the config.
+3. **`panel.py` on the Pi must match the repo.** After editing it locally,
+   copy it over (`rsync … mlavinder@delia-pi.local:~/delia/pi_apps/led_matrix/`).
+
+**Full build/repair procedure:** **[led-matrix-setup.md](led-matrix-setup.md)** —
+read it before touching anything if the panel misbehaves or you reflash the card.
+
+---
+
 > Prerequisite: the Pi is set up and you can SSH into it. If not, do
 > [`../bootstrap`](../bootstrap/README.md) first.
 
