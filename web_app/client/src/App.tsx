@@ -1,3 +1,5 @@
+import { BrightnessSlider } from './components/BrightnessSlider'
+import { ColorPicker } from './components/ColorPicker'
 import { OffButton } from './components/OffButton'
 import { OverlayChip } from './components/OverlayChip'
 import { SceneButton } from './components/SceneButton'
@@ -9,10 +11,14 @@ export function App() {
     overlays,
     background,
     active,
+    color,
+    brightness,
     loading,
     error,
     pickBackground,
     toggleOverlay,
+    pickColor,
+    changeBrightness,
     off,
   } = usePanel()
 
@@ -28,6 +34,7 @@ export function App() {
       <p className={error ? 'sub error' : 'sub'} role="status">{status}</p>
 
       <OffButton isOff={background === null} onSelect={off} />
+      <BrightnessSlider value={brightness} onChange={changeBrightness} />
 
       <h2 className="section">Scenes</h2>
       <div className="grid">
@@ -40,6 +47,7 @@ export function App() {
             onSelect={() => pickBackground(b.name)}
           />
         ))}
+        <ColorPicker color={color} active={background === 'color'} onPick={pickColor} />
       </div>
 
       <h2 className="section">Info</h2>

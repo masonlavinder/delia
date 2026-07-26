@@ -35,11 +35,25 @@ export function fetchOverlays(): Promise<{ overlays: Item[] }> {
   return request<{ overlays: Item[] }>('/api/overlays')
 }
 
-/** Set the panel to a background with zero or more overlays composited on top. */
-export function setScene(background: string, overlays: string[]): Promise<Result> {
+/** Set the panel to a background with zero or more overlays composited on top.
+ * `color` is used when background is "color"; `brightness` (1-100) rides along
+ * so it persists across scene switches. */
+export function setScene(
+  background: string,
+  overlays: string[],
+  opts: { color?: [number, number, number]; brightness?: number } = {},
+): Promise<Result> {
   return request<Result>('/api/scene', {
     method: 'POST',
-    body: JSON.stringify({ background, overlays }),
+    body: JSON.stringify({ background, overlays, ...opts }),
+  })
+}
+
+/** Set panel brightness live (1-100). */
+export function setBrightness(value: number): Promise<Result> {
+  return request<Result>('/api/brightness', {
+    method: 'POST',
+    body: JSON.stringify({ value }),
   })
 }
 

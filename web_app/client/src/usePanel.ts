@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchBackgrounds, fetchOverlays, setScene, turnOff } from './api'
+import { fetchBackgrounds, fetchOverlays, setBrightness, setScene, turnOff } from './api'
 import type { Item } from './api'
 
 const POLL_MS = 5000
@@ -19,17 +19,27 @@ function parseSelection(
   }
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  return [
+    parseInt(h.slice(0, 2), 16) || 0,
+    parseInt(h.slice(2, 4), 16) || 0,
+    parseInt(h.slice(4, 6), 16) || 0,
+  ]
+}
+
 /**
- * Owns all panel state. A scene = one background + any number of overlays.
- * Selecting a background or toggling an overlay recomposes and applies
- * optimistically (instant on a phone), then reconciles against the daemon on
- * the next poll — or rolls back immediately on failure.
+ * Owns all panel state. A scene = one background (a preset or a picked color)
+ * + any number of overlays, at a global brightness. Any change recomposes and
+ * applies optimistically, then reconciles against the daemon on the next poll.
  */
 export function usePanel() {
   const [backgrounds, setBackgrounds] = useState<Item[]>([])
   const [overlays, setOverlays] = useState<Item[]>([])
   const [background, setBackground] = useState<string | null>(null)
   const [active, setActive] = useState<string[]>([]) // active overlay names
+  const [color, setColorState] = useState('#8b5cf6') // last-picked solid color
+  const [brightness, setBrightnessState] = useState(40)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,7 +52,9 @@ export function usePanel() {
       const { backgrounds: bgs, current } = await fetchBackgrounds()
       if (pending.current) return
       setBackgrounds(bgs)
-      const sel = parseSelection(current, new Set(bgs.map((b) => b.name)), ovNames)
+      // "color" is a valid background even though it's not in the preset list.
+      const names = new Set([...bgs.map((b) => b.name), 'color'])
+      const sel = parseSelection(current, names, ovNames)
       setBackground(sel.background)
       setActive(sel.overlays)
       setError(null)
@@ -53,7 +65,6 @@ export function usePanel() {
     }
   }, [ovNames])
 
-  // Overlay list is server-defined and static; fetch it once.
   useEffect(() => {
     fetchOverlays()
       .then((o) => setOverlays(o.overlays))
@@ -87,23 +98,42 @@ export function usePanel() {
     [background, active, refresh],
   )
 
+  // opts for the currently-selected background (carries the color when it's "color")
+  const bgOpts = useCallback(
+    (bg: string) =>
+      bg === 'color' ? { color: hexToRgb(color), brightness } : { brightness },
+    [color, brightness],
+  )
+
   const pickBackground = useCallback(
-    (name: string) => apply(name, active, () => setScene(name, active)),
-    [apply, active],
+    (name: string) => apply(name, active, () => setScene(name, active, { brightness })),
+    [apply, active, brightness],
   )
 
   const toggleOverlay = useCallback(
     (name: string) => {
-      // An overlay needs a background under it; default to black if none chosen.
       const bg = background ?? backgrounds.find((b) => b.name === 'black')?.name ?? backgrounds[0]?.name
       if (!bg) return
-      const next = active.includes(name)
-        ? active.filter((x) => x !== name)
-        : [...active, name]
-      void apply(bg, next, () => setScene(bg, next))
+      const next = active.includes(name) ? active.filter((x) => x !== name) : [...active, name]
+      void apply(bg, next, () => setScene(bg, next, bgOpts(bg)))
     },
-    [apply, background, active, backgrounds],
+    [apply, background, active, backgrounds, bgOpts],
   )
+
+  const pickColor = useCallback(
+    (hex: string) => {
+      setColorState(hex)
+      void apply('color', active, () =>
+        setScene('color', active, { color: hexToRgb(hex), brightness }),
+      )
+    },
+    [apply, active, brightness],
+  )
+
+  const changeBrightness = useCallback((value: number) => {
+    setBrightnessState(value)
+    void setBrightness(value).catch(() => {}) // live; persists via future compositions
+  }, [])
 
   const off = useCallback(() => apply(null, [], turnOff), [apply])
 
@@ -112,10 +142,14 @@ export function usePanel() {
     overlays,
     background,
     active,
+    color,
+    brightness,
     loading,
     error,
     pickBackground,
     toggleOverlay,
+    pickColor,
+    changeBrightness,
     off,
   }
 }

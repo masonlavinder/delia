@@ -52,10 +52,10 @@ BACKGROUNDS: dict[str, dict] = {
         {"type": "solid", "color": [0, 0, 0]},
     ]},
     "plasma": {"emoji": "🌀", "brightness": 20, "layers": [
-        {"type": "gif", "asset_id": "plasma", "fit": "cover", "fps": 10},
+        {"type": "gif", "asset_id": "plasma", "fit": "cover", "fps": 15},
     ]},
     "rocket": {"emoji": "🚀", "layers": [
-        {"type": "gif", "asset_id": "rocket", "fit": "cover", "fps": 12},
+        {"type": "gif", "asset_id": "rocket", "fit": "cover", "fps": 15},
     ]},
 }
 
@@ -87,13 +87,21 @@ def _slug(text: str) -> str:
 
 
 def compose(background: str, overlays: list[str] | None = None,
-            brightness: int | None = None) -> dict:
-    """Build a Scene document: background layers, then overlay layers on top."""
-    if background not in BACKGROUNDS:
-        raise KeyError(f"unknown background: {background!r}")
+            brightness: int | None = None, color: list[int] | None = None) -> dict:
+    """Build a Scene document: background layers, then overlay layers on top.
+
+    The special background "color" is a generic solid of the given RGB `color`.
+    """
     overlays = overlays or []
-    bg = BACKGROUNDS[background]
-    layers = [dict(layer) for layer in bg["layers"]]
+    if background == "color":
+        layers = [{"type": "solid", "color": color or [0, 0, 0]}]
+        bg_brightness = None
+    else:
+        if background not in BACKGROUNDS:
+            raise KeyError(f"unknown background: {background!r}")
+        bg = BACKGROUNDS[background]
+        layers = [dict(layer) for layer in bg["layers"]]
+        bg_brightness = bg.get("brightness")
     for name in overlays:
         ov = OVERLAYS.get(name)
         if ov is None:
@@ -102,7 +110,7 @@ def compose(background: str, overlays: list[str] | None = None,
         layers += [dict(layer) for layer in ov_layers]
 
     scene = {"name": _slug("-".join([background, *overlays])), "layers": layers}
-    b = brightness if brightness is not None else bg.get("brightness")
+    b = brightness if brightness is not None else bg_brightness
     if b is not None:
         scene["brightness"] = b
     return scene

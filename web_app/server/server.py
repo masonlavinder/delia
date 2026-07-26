@@ -99,13 +99,28 @@ def api_scene():
     if not isinstance(overlays, list):
         return jsonify(ok=False, error="overlays must be a list"), 400
     try:
-        scene = compose(background, overlays, brightness=body.get("brightness"))
+        scene = compose(background, overlays,
+                         brightness=body.get("brightness"), color=body.get("color"))
     except KeyError as exc:
         return jsonify(ok=False, error=str(exc)), 400
     try:
         result = client.set_scene(scene)
     except OSError as exc:
         return jsonify(ok=False, error=f"renderer unreachable: {exc}"), 503
+    return jsonify(result), (200 if result.get("ok") else 400)
+
+
+@app.post("/api/brightness")
+def api_brightness():
+    """Set the panel brightness live (1-100). The client also rides brightness
+    along in scene compositions so it persists across scene switches."""
+    value = (request.get_json(silent=True) or {}).get("value")
+    if not isinstance(value, int) or isinstance(value, bool) or not (1 <= value <= 100):
+        return jsonify(ok=False, error="value must be an integer 1..100"), 400
+    try:
+        result = client.set_brightness(value)
+    except OSError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
     return jsonify(result), (200 if result.get("ok") else 400)
 
 
