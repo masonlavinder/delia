@@ -56,15 +56,12 @@ class RGBMatrixBackend:
         opts.parallel = 1
         opts.hardware_mapping = "adafruit-hat"
         opts.gpio_slowdown = int(os.environ.get("PANEL_GPIO_SLOWDOWN", "2"))
-        opts.brightness = 40
-        # Refresh tuning: busy full-panel scenes (plasma) flash if the refresh
-        # rate is too low. Lower pwm_bits + shorter LSB pulse -> higher refresh
-        # (small color-depth cost). All tunable via env to iterate on hardware.
-        opts.pwm_bits = int(os.environ.get("PANEL_PWM_BITS", "6"))
-        opts.pwm_lsb_nanoseconds = int(os.environ.get("PANEL_PWM_LSB_NS", "100"))
-        # Dither recovers some color depth lost to the low pwm_bits (and helps hide
-        # flicker on lit pixels) without dropping the refresh rate.
-        opts.pwm_dither_bits = int(os.environ.get("PANEL_PWM_DITHER", "1"))
+        opts.brightness = int(os.environ.get("PANEL_BRIGHTNESS", "40"))
+        # Full color depth (11). Flashing lines that show ONLY on lit pixels are a
+        # POWER issue (5V sag under load), not refresh -- lowering pwm_bits doesn't
+        # fix it and costs color, so keep it high. Lower PANEL_BRIGHTNESS to reduce
+        # current draw if the supply/wiring sags on full-panel scenes.
+        opts.pwm_bits = int(os.environ.get("PANEL_PWM_BITS", "11"))
         # This panel is wired BGR: without this, red<->blue are swapped. One
         # setting corrects Fill/DrawText/SetImage uniformly. Override if a future
         # panel differs.
