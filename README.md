@@ -16,8 +16,12 @@ delia/
 │   ├── assets/        image/gif assets (referenced by scenes via asset_id)
 │   ├── tools/         asset generators
 │   └── tests/         run with: cd matrix && PANEL_BACKEND=mock .venv/bin/pytest
-├── web_app/           phone web UI (Flask) to switch scenes; talks to the daemon
+├── web_app/           phone web UI to switch scenes
+│   ├── server/        Flask: the control API + static host for the built client;
+│   │                  owns the scene documents, talks to the daemon
+│   └── client/        React + TypeScript (Vite) SPA; build on a laptop, not the Pi
 ├── clove_plans/       (placeholder)
+└── deploy.sh          push to the Pi (client / api / engine / units / all)
 ```
 
 ## How the LED matrix runs
@@ -31,6 +35,8 @@ path from input; every scene is re-validated at the daemon (the trust boundary).
 - **Control it:** open `http://delia-pi.local:8080` on your phone (home WiFi).
 - **Reach the Pi:** `ssh mlavinder@delia-pi.local` (passwordless key; `sudo`
   needs a password).
+- **Deploy:** `./deploy.sh` (or `./deploy.sh client` for a UI-only change —
+  that one needs no service restart). `./deploy.sh -h` for all targets.
 
 ## Docs
 

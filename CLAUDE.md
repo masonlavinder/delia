@@ -10,7 +10,9 @@ documents** over a Unix socket. An unprivileged web app validates and forwards
 them. Nothing spawns a process; nothing derives a filesystem path from input.
 
 ```
-phone -> web app (panel-api, user mlavinder, group panel)
+phone -> React client (static, served by the API)
+             |  fetch /api/*
+         web app (panel-api, user mlavinder, group panel)
              |  newline-JSON
         /run/panel/panel.sock  (root:panel, 0660)
              |
@@ -24,16 +26,20 @@ phone -> web app (panel-api, user mlavinder, group panel)
   `matrix/assets/`). `renderer.py` is a render loop; `daemon.py` is the trust
   boundary; `backends/` has `rgbmatrix` (real, root) and `mock` (Pillow, for
   tests). See `matrix/README.md`.
-- `web_app/server.py` — the phone web UI (Flask), a **separate root folder**.
-  Unprivileged; talks to the daemon via `panel.client` (an installed package, so
-  it stands alone). Built-in scenes live in its `SCENES` dict.
+- `web_app/` — the phone UI, a **separate root folder**, itself split
+  client/server:
+  - `web_app/server/` — Flask (`server.py` routes, `scenes.py` the built-in
+    `SCENES` dict). Unprivileged; talks to the daemon via `panel.client` (an
+    installed package, so it stands alone). Also static-hosts the built client.
+  - `web_app/client/` — React + TypeScript + Vite SPA. Hardcodes **no** scene
+    list; it renders whatever `/api/scenes` returns. See `web_app/README.md`.
 - `matrix/raspberry_pi/` — everything Pi-specific: the build/repair runbook
   (`led-matrix-setup.md`), SD-card headless setup (`pi-setup/`), diagnostics
   (`check-address-lines.py`, `tune-slowdown.sh`), and the systemd units.
 
 Layout: `matrix/panel/` = portable engine (runs on the mock in CI),
-`matrix/raspberry_pi/` = Pi-specific tooling/config, `web_app/` = the phone UI.
-No `pi_apps/`.
+`matrix/raspberry_pi/` = Pi-specific tooling/config, `web_app/` = the phone UI
+(`server/` + `client/`). No `pi_apps/`.
 
 Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
 `panel-api` (mlavinder). The old CLI/direct-GPIO approach (`display`, `run.sh`,
@@ -43,15 +49,29 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
 
 - Off-Pi, everything runs on the **mock backend** (no GPIO, no fonts on disk):
   `cd matrix && PANEL_BACKEND=mock .venv/bin/pytest`.
-- Edit, then deploy to the Pi and restart:
+- Client dev loop: `cd web_app/client && npm run dev` — Vite on :5173 with HMR,
+  proxying `/api` to `delia-pi.local:8080` (override with `PANEL_API=…`). So you
+  develop the UI against the real daemon without deploying.
+- **Deploy with `./deploy.sh`** (repo root) — don't hand-roll the rsync:
   ```
-  rsync -az --exclude .venv --exclude __pycache__ matrix web_app mlavinder@delia-pi.local:~/delia/
-  # on the Pi (needs a password now — see below):
-  sudo systemctl restart panel-renderer panel-api
+  ./deploy.sh          # build client, push all, install units, restart both
+  ./deploy.sh client   # build + push dist/ only; NO restart needed
+  ./deploy.sh api      # push web_app/server/ + restart panel-api
+  ./deploy.sh engine   # push matrix/ + restart panel-renderer
+  ./deploy.sh -n …     # dry run;  also: units, restart, status, logs
   ```
-- **Add a scene:** add a declarative document to `SCENES` in `web_app/server.py`
-  (built from the layer types). For an animation, drop a `.gif` in `matrix/assets/`
-  and reference it with a `gif` layer (`asset_id` = filename without extension).
+  It builds the client here (the Pi has no Node and 512 MB), pushes `dist/`
+  with `--delete` (asset names are content-hashed), and prompts for the Pi's
+  sudo password on the steps that need it.
+- **The systemd units are COPIES in `/etc/systemd/system`.** Editing
+  `matrix/raspberry_pi/systemd/*.service` and rsyncing does nothing on its own —
+  the running service keeps its old definition. `./deploy.sh` handles this: it
+  compares, and reinstalls + `daemon-reload`s only when they differ.
+- **Add a scene:** add a declarative document to `SCENES` in
+  `web_app/server/scenes.py` (built from the layer types), plus an entry in
+  `SCENE_EMOJI` beside it. The client needs no change and no rebuild. For an
+  animation, drop a `.gif` in `matrix/assets/` and reference it with a `gif`
+  layer (`asset_id` = filename without extension).
 - Reach the Pi: `ssh mlavinder@delia-pi.local` (passwordless SSH key).
   **`sudo` now requires a password** (the broad NOPASSWD grant was removed) — to
   run a privileged command in a session, prefix it with `! sudo …`.
