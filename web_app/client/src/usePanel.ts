@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchBackgrounds, fetchOverlays, setBrightness, setScene, turnOff } from './api'
 import type { Item, Overlay, OverlaySel, Params } from './api'
+import { useThrottledCallback } from './useThrottle'
 
 const POLL_MS = 5000
 
@@ -117,6 +118,26 @@ export function usePanel() {
     [color, brightness],
   )
 
+  // Continuous controls (brightness / position sliders, color pickers) fire a
+  // flood of onChange events per drag. We update local state instantly for a
+  // responsive UI but THROTTLE the actual panel command — ~one per 150ms while
+  // dragging, plus a guaranteed final one on release. This is what stops the
+  // daemon from being buried in commands.
+  const commitScene = useThrottledCallback(
+    (bg: string, names: string[], ps: Record<string, Params>, br: number, hex: string) => {
+      const opts = bg === 'color' ? { color: hexToRgb(hex), brightness: br } : { brightness: br }
+      const sel: OverlaySel[] = names.map((n) => ({ name: n, params: ps[n] ?? {} }))
+      void setScene(bg, sel, opts).catch((err) =>
+        setError(err instanceof Error ? err.message : String(err)),
+      )
+    },
+    150,
+  )
+
+  const commitBrightness = useThrottledCallback((v: number) => {
+    void setBrightness(v).catch((err) => setError(err instanceof Error ? err.message : String(err)))
+  }, 150)
+
   const pickBackground = useCallback(
     (name: string) => apply(name, active, () => setScene(name, select(active), { brightness })),
     [apply, active, select, brightness],
@@ -135,29 +156,30 @@ export function usePanel() {
   const pickColor = useCallback(
     (hex: string) => {
       setColorState(hex)
-      void apply('color', active, () =>
-        setScene('color', select(active), { color: hexToRgb(hex), brightness }),
-      )
+      setBackground('color') // optimistic; the throttled commit pushes it to the panel
+      commitScene('color', active, params, brightness, hex)
     },
-    [apply, active, select, brightness],
+    [active, params, brightness, commitScene],
   )
 
-  // Tune one parameter of an active overlay (e.g. clock color) and re-apply.
+  // Tune one parameter of an active overlay (e.g. clock color / position).
   const setOverlayParam = useCallback(
     (name: string, key: string, value: Params[string]) => {
-      const bg = background
-      if (!bg) return
+      if (!background) return
       const next = { ...params, [name]: { ...(params[name] ?? {}), [key]: value } }
       setParams(next)
-      void apply(bg, active, () => setScene(bg, select(active, next), bgOpts(bg)))
+      commitScene(background, active, next, brightness, color)
     },
-    [apply, background, active, params, select, bgOpts],
+    [background, active, params, brightness, color, commitScene],
   )
 
-  const changeBrightness = useCallback((value: number) => {
-    setBrightnessState(value)
-    void setBrightness(value).catch(() => {}) // live; persists via future compositions
-  }, [])
+  const changeBrightness = useCallback(
+    (value: number) => {
+      setBrightnessState(value)
+      commitBrightness(value) // live + throttled; persists via future compositions
+    },
+    [commitBrightness],
+  )
 
   const off = useCallback(() => apply(null, [], turnOff), [apply])
 
