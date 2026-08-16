@@ -21,7 +21,10 @@ would dimly light the whole panel).
 """
 from __future__ import annotations
 
+import logging
 import os
+
+log = logging.getLogger(__name__)
 
 # Fonts available on the panel (must match matrix/panel/schema.py FontName).
 FONTS = ["4x6", "5x7", "6x10", "7x13", "9x18", "10x20"]
@@ -53,10 +56,39 @@ def _apply_params(layer: dict, params: dict | None) -> dict:
     return layer
 
 
-# --- weather (Open-Meteo, no API key). Change location via env or here. ------
-WEATHER_LAT = float(os.environ.get("PANEL_WEATHER_LAT", "0.00"))     # REDACTED
-WEATHER_LON = float(os.environ.get("PANEL_WEATHER_LON", "0.00"))
+# --- weather (Open-Meteo, no API key) ---------------------------------------
+# The location is deliberately NOT in this file. A home latitude/longitude is
+# personal data, and it would be committed and permanent; the repo is meant to
+# be shareable. Set PANEL_WEATHER_LAT / PANEL_WEATHER_LON in the Pi's
+# ~/delia/.env — gitignored and rsync-excluded, the same place the API key
+# lives, so the Pi owns its own copy. `.env.example` (repo root) is the
+# template and explains how to find your coordinates.
+#
+# Unset or unparseable -> the overlay renders "--", exactly the placeholder it
+# already shows when the network is down. No scene breaks and nothing else
+# changes; the reason is in the journal.
+
+
+def _env_coord(name: str) -> float | None:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        log.warning("%s=%r is not a number — weather overlay will show '--'", name, raw)
+        return None
+
+
+WEATHER_LAT = _env_coord("PANEL_WEATHER_LAT")
+WEATHER_LON = _env_coord("PANEL_WEATHER_LON")
 WEATHER_UNIT = os.environ.get("PANEL_WEATHER_UNIT", "fahrenheit")      # or "celsius"
+
+if WEATHER_LAT is None or WEATHER_LON is None:
+    log.warning(
+        "no weather location — set PANEL_WEATHER_LAT and PANEL_WEATHER_LON in "
+        "~/delia/.env (see .env.example). The weather overlay will show '--'."
+    )
 
 # Position/font/color of the weather readout; `content` is filled in live.
 _WEATHER_TEMPLATE = {"type": "text", "content": "--", "font": "7x13",
@@ -64,6 +96,8 @@ _WEATHER_TEMPLATE = {"type": "text", "content": "--", "font": "7x13",
 
 
 def _fetch_temp() -> int:
+    if WEATHER_LAT is None or WEATHER_LON is None:
+        raise RuntimeError("no weather location configured (PANEL_WEATHER_LAT/LON)")
     import requests  # server-only dep; not needed by the schema/daemon
     url = (
         "https://api.open-meteo.com/v1/forecast"

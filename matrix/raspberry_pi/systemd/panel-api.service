@@ -10,10 +10,13 @@ Type=simple
 User=mlavinder
 SupplementaryGroups=panel
 Environment=PANEL_SOCK=/run/panel/panel.sock
-# Optional, for the natural-language ask box: ANTHROPIC_API_KEY=sk-ant-...
-# (and optionally PANEL_AI_MODEL / PANEL_AI_EFFORT). The leading `-` means the
-# file may be absent — no key, no ask box, everything else unaffected. Kept out
-# of git and out of rsync, so the Pi owns its own copy.
+# Per-device secrets and personal data — see `.env.example` at the repo root.
+# The ask box key (ANTHROPIC_API_KEY, plus optional PANEL_AI_MODEL / _EFFORT),
+# and the weather overlay's location (PANEL_WEATHER_LAT / _LON / _UNIT), which
+# is kept here rather than in the source because a home coordinate should not
+# be committed. The leading `-` means the file may be absent: no key, no ask
+# box; no location, weather shows "--"; everything else unaffected. Kept out of
+# git and out of rsync, so the Pi owns its own copy.
 EnvironmentFile=-/home/mlavinder/delia/.env
 # Serves the API plus the pre-built React client from ../client/dist. The client
 # is built on a dev machine and rsynced; nothing is compiled on the Pi.

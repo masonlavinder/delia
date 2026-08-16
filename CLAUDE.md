@@ -101,6 +101,14 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   disabled, explaining itself, rather than disappearing.
   `PANEL_AI_MODEL` overrides the model. Requires `anthropic` on the Pi, which
   the engine and daemon must never import.
+- **Secrets and personal data live in `~/delia/.env` on the Pi, never in the
+  source.** `.env.example` at the repo root is the template; the real file is
+  gitignored *and* rsync-excluded, so a deploy never clobbers it. That is where
+  `ANTHROPIC_API_KEY` and the weather overlay's location
+  (`PANEL_WEATHER_LAT`/`_LON`/`_UNIT`) go. **Don't put a coordinate, address,
+  SSID, or key back into `scenes.py` as a "default"** — a committed default is
+  permanent, and this repo is meant to be shareable. Unset values degrade one
+  feature and log why: no key → ask box disabled, no location → weather `--`.
 - **The UI follows Knurled Studio.** Rules in `~/Desktop/knurled-studio/KNURLED.md`;
   the design layer is **vendored** into `web_app/client/src/styles/` because
   delia is a separate repo that rsyncs to a Pi and cannot resolve a

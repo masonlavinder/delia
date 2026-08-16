@@ -81,7 +81,7 @@ Off by default. Give the server a key and restart:
 
 ```bash
 # on the Pi
-printf 'ANTHROPIC_API_KEY=sk-ant-...\n' > ~/delia/.env && chmod 600 ~/delia/.env
+printf 'ANTHROPIC_API_KEY=sk-ant-...\n' >> ~/delia/.env && chmod 600 ~/delia/.env
 sudo pip3 install --break-system-packages anthropic
 sudo systemctl restart panel-api
 ```
@@ -94,6 +94,33 @@ that silently isn't there.
 Tunables (same `.env`): `PANEL_AI_MODEL` (default `claude-opus-5`;
 `claude-haiku-4-5` is faster and cheaper), `PANEL_AI_EFFORT` (default `low`),
 `PANEL_AI_TIMEOUT`.
+
+## `.env` — per-device secrets and personal data
+
+One file on the Pi holds everything that shouldn't be in git.
+[`.env.example`](../.env.example) at the repo root is the template; copy it to
+`~/delia/.env` on the Pi, fill it in, `chmod 600`, restart `panel-api`. It is
+gitignored *and* excluded from `deploy.sh`'s rsync, so a deploy never
+overwrites it and nothing in it can be committed by accident.
+
+Two things live there:
+
+| Variable | Without it |
+|---|---|
+| `ANTHROPIC_API_KEY` | ask box renders disabled, explains why |
+| `PANEL_WEATHER_LAT` / `PANEL_WEATHER_LON` | weather overlay shows `--` |
+
+**The weather location is not in the source on purpose.** A home
+latitude/longitude is personal data, and anything committed to a repo is
+permanent — removing it later means rewriting history, which is only cheap
+while the repo is private. Unset, `_fetch_temp` raises and the overlay falls
+through to the `--` placeholder it already uses when the network is down, so
+nothing breaks; the reason is logged once at startup
+(`journalctl -u panel-api`). `PANEL_WEATHER_UNIT` is `fahrenheit` or `celsius`.
+
+Two decimal places (~1 km) is plenty for a temperature and much less
+identifying than four (~11 m) — prefer a city center or nearby landmark over
+your actual address.
 
 ## Styling
 
