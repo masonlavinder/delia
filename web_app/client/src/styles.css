@@ -178,6 +178,53 @@ h1 {
   accent-color: #8b5cf6;
 }
 
+/* Ask box: a sentence in, a scene out. */
+.ask {
+  display: flex;
+  gap: 10px;
+}
+
+.ask input {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  border: 1px solid #2a2a3c;
+  background: #16161f;
+  color: #e8e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font: inherit;
+  font-size: 16px; /* 16px or iOS zooms the page on focus */
+}
+
+.ask input::placeholder {
+  color: #55556a;
+}
+
+.ask input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px #8b5cf655;
+}
+
+.ask button {
+  appearance: none;
+  border: 1px solid #8b5cf6;
+  background: #6d28d9;
+  color: #e8e8f0;
+  border-radius: 14px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.ask input:disabled,
+.ask button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Per-overlay parameter editors: one card per active overlay. */
 .editors {
   display: flex;

@@ -9,3 +9,6 @@ matrix/raspberry_pi/pi-setup/boot_files/custom.toml
 matrix/raspberry_pi/pi-setup/boot_files/wpa_supplicant.conf
 *.nmconnection
 *.conf
+
+# Secrets for panel-api (ANTHROPIC_API_KEY). Lives on the Pi; never synced.
+.env

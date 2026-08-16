@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchBackgrounds, fetchOverlays, setBrightness, setScene, turnOff } from './api'
+import {
+  askScene,
+  fetchAiStatus,
+  fetchBackgrounds,
+  fetchOverlays,
+  setBrightness,
+  setScene,
+  turnOff,
+} from './api'
 import type { Item, Overlay, OverlaySel, Params } from './api'
 import { useThrottledCallback } from './useThrottle'
 
@@ -29,6 +37,10 @@ function hexToRgb(hex: string): [number, number, number] {
   ]
 }
 
+function rgbToHex(rgb: [number, number, number]): string {
+  return '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
+}
+
 /**
  * Owns all panel state. A scene = one background (a preset or a picked color)
  * + any number of overlays, each with its own tunable params (color/font/
@@ -48,6 +60,11 @@ export function usePanel() {
   const [brightness, setBrightnessState] = useState(40)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Whether the server has a key. null until it answers — the ask box is always
+  // rendered, so this only decides whether it's usable or explains itself.
+  const [ai, setAi] = useState<boolean | null>(null)
+  const [asking, setAsking] = useState(false)
+  const [note, setNote] = useState<string | null>(null) // the model's one-liner
 
   const pending = useRef(false)
   const ovNames = useMemo(() => new Set(overlays.map((o) => o.name)), [overlays])
@@ -75,6 +92,9 @@ export function usePanel() {
     fetchOverlays()
       .then((o) => setOverlays(o.overlays))
       .catch(() => {})
+    fetchAiStatus()
+      .then((s) => setAi(s.enabled))
+      .catch(() => setAi(false)) // older server without the endpoint -> box explains itself
   }, [])
 
   useEffect(() => {
@@ -90,6 +110,7 @@ export function usePanel() {
       setBackground(bg)
       setActive(ovs)
       setError(null)
+      setNote(null) // any manual change makes the model's line stale
       try {
         await action()
       } catch (err) {
@@ -183,6 +204,39 @@ export function usePanel() {
 
   const off = useCallback(() => apply(null, [], turnOff), [apply])
 
+  /** Describe a scene in words. The server does the choosing and the applying,
+   * then reports back what it picked — we adopt that wholesale so the buttons,
+   * sliders and editors all show what is actually on the panel. */
+  const ask = useCallback(
+    async (prompt: string) => {
+      pending.current = true // hold off the poll until we've taken the answer
+      setAsking(true)
+      setError(null)
+      try {
+        const res = await askScene(prompt)
+        setBackground(res.background)
+        setActive(res.overlays.map((o) => o.name))
+        setParams((prev) => {
+          const next = { ...prev }
+          for (const o of res.overlays) {
+            if (o.params) next[o.name] = { ...(next[o.name] ?? {}), ...o.params }
+          }
+          return next
+        })
+        if (typeof res.brightness === 'number') setBrightnessState(res.brightness)
+        if (res.color) setColorState(rgbToHex(res.color))
+        setNote(res.note || null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setAsking(false)
+        pending.current = false
+      }
+      void refresh()
+    },
+    [refresh],
+  )
+
   return {
     backgrounds,
     overlays,
@@ -193,11 +247,15 @@ export function usePanel() {
     brightness,
     loading,
     error,
+    ai,
+    asking,
+    note,
     pickBackground,
     toggleOverlay,
     setOverlayParam,
     pickColor,
     changeBrightness,
     off,
+    ask,
   }
 }

@@ -10,6 +10,11 @@ Serves two things:
   * `/api/*`     — the JSON control API consumed by the React client
   * everything else — the built client from `web_app/client/dist`
 
+`/api/ai/scene` turns a typed sentence into a scene (see ai.py). It is a
+front-end to the same compose() path as the buttons, not a second way in — and
+it is optional: with no ANTHROPIC_API_KEY set it reports disabled and the UI
+hides it.
+
 The client is a Vite/React app built ahead of time on a dev machine (the Pi 3 A+
 has 512 MB — see web_app/README.md). Same origin, so no CORS.
 
@@ -24,6 +29,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 # The panel package is installed system-wide; the client is pure Python (no GPIO).
 from panel.client import PanelClient
 
+import ai
 from scenes import compose, list_backgrounds, list_overlays, overlays_have_dynamic
 
 CLIENT_DIST = Path(__file__).resolve().parent.parent / "client" / "dist"
@@ -71,6 +77,26 @@ def _current_scene():
         return None  # daemon down -> report nothing playing
 
 
+def _apply(background, overlays, brightness=None, color=None) -> tuple[dict, int]:
+    """Compose, send, remember. The single write path — a button tap and an AI
+    request both land here, so neither can skip validation or the bookkeeping
+    the weather refresher depends on."""
+    try:
+        scene = compose(background, overlays, brightness=brightness, color=color)
+    except KeyError as exc:
+        return {"ok": False, "error": str(exc)}, 400
+    try:
+        result = client.set_scene(scene)
+    except OSError as exc:
+        return {"ok": False, "error": f"renderer unreachable: {exc}"}, 503
+    if result.get("ok"):
+        # Remember exactly what we applied so the weather refresher can rebuild it.
+        _last_request.clear()
+        _last_request.update(background=background, overlays=overlays,
+                             brightness=brightness, color=color)
+    return result, (200 if result.get("ok") else 400)
+
+
 @app.get("/api/backgrounds")
 def api_backgrounds():
     return jsonify(backgrounds=list_backgrounds(), current=_current_scene())
@@ -101,21 +127,9 @@ def api_scene():
         return jsonify(ok=False, error="background required"), 400
     if not isinstance(overlays, list):
         return jsonify(ok=False, error="overlays must be a list"), 400
-    brightness, color = body.get("brightness"), body.get("color")
-    try:
-        scene = compose(background, overlays, brightness=brightness, color=color)
-    except KeyError as exc:
-        return jsonify(ok=False, error=str(exc)), 400
-    try:
-        result = client.set_scene(scene)
-    except OSError as exc:
-        return jsonify(ok=False, error=f"renderer unreachable: {exc}"), 503
-    if result.get("ok"):
-        # Remember exactly what we applied so the weather refresher can rebuild it.
-        _last_request.clear()
-        _last_request.update(background=background, overlays=overlays,
-                             brightness=brightness, color=color)
-    return jsonify(result), (200 if result.get("ok") else 400)
+    payload, status = _apply(background, overlays,
+                             body.get("brightness"), body.get("color"))
+    return jsonify(payload), status
 
 
 @app.post("/api/brightness")
@@ -140,6 +154,38 @@ def api_off():
         return jsonify(ok=False, error=str(exc)), 503
     _last_request.clear()  # nothing playing -> nothing for the refresher to rebuild
     return jsonify(ok=True)
+
+
+# ------------------------------------------------------------------- ask ai
+
+@app.get("/api/ai")
+def api_ai():
+    """Whether the ask-box should exist at all. Fetched once on mount."""
+    return jsonify(enabled=ai.enabled(), model=ai.MODEL if ai.enabled() else None)
+
+
+@app.post("/api/ai/scene")
+def api_ai_scene():
+    """Natural language -> a scene.
+
+    Claude only chooses from the registry (see ai.py); the choice is applied
+    through _apply like any other, and echoed back so the client can show what
+    it picked without waiting for the next poll.
+    """
+    prompt = (request.get_json(silent=True) or {}).get("prompt")
+    if not isinstance(prompt, str) or not prompt.strip():
+        return jsonify(ok=False, error="prompt required"), 400
+    if len(prompt) > ai.MAX_PROMPT:
+        return jsonify(ok=False, error=f"prompt over {ai.MAX_PROMPT} characters"), 400
+    try:
+        plan = ai.plan_scene(prompt.strip())
+    except ai.AiError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
+    payload, status = _apply(plan["background"], plan["overlays"],
+                             plan.get("brightness"), plan.get("color"))
+    if status == 200:
+        payload = {**payload, **plan}  # tell the client what was chosen
+    return jsonify(payload), status
 
 
 # ------------------------------------------------------------- static client

@@ -7,7 +7,8 @@ client is a React SPA it serves as static files.
 web_app/
 ├── server/          Flask — the control API + static host for the built client
 │   ├── server.py    routes; talks to the renderer daemon via panel.client
-│   └── scenes.py    the built-in scene documents (add scenes here)
+│   ├── scenes.py    the BACKGROUNDS + OVERLAYS registry (add scenes here)
+│   └── ai.py        optional: a typed sentence -> a pick from that registry
 └── client/          React + TypeScript + Vite
     ├── src/
     │   ├── App.tsx          layout + status line
@@ -19,9 +20,10 @@ web_app/
 ```
 
 **The server never derives a filesystem path from user input.** `/api/scene`
-takes a *name* and looks it up in `SCENES`; the scene document sent to the
-daemon is one we wrote. The daemon re-validates it regardless — that re-check is
-what protects the device. See the security model in `CLAUDE.md`.
+takes *names* and looks them up in `BACKGROUNDS` / `OVERLAYS`; the scene
+document sent to the daemon is composed from layers we wrote. The daemon
+re-validates it regardless — that re-check is what protects the device. See the
+security model in `CLAUDE.md`.
 
 ## Responsibilities
 
@@ -40,12 +42,53 @@ The client hardcodes no scene list. Adding a scene is a one-file change in
 
 | | |
 |---|---|
-| `GET /api/scenes` | `{scenes: [{name, emoji}], current: string \| null}` |
-| `POST /api/scene` | `{name}` → `{ok}`; `400` unknown scene, `503` daemon down |
+| `GET /api/backgrounds` | `{backgrounds: [{name, emoji}], current: string \| null}` |
+| `GET /api/overlays` | `{overlays: [{name, emoji, params}]}` — `params` is the editable spec |
+| `POST /api/scene` | `{background, overlays[], brightness?, color?}` → `{ok}`; `400` unknown name, `503` daemon down |
+| `POST /api/brightness` | `{value}` (1–100) → `{ok}` |
 | `POST /api/off` | `{ok}`; `503` daemon down |
+| `GET /api/ai` | `{enabled, model}` — whether the ask box should exist |
+| `POST /api/ai/scene` | `{prompt}` → the applied selection + `note`; `503` when disabled |
 
 Any non-`/api/` path falls back to `index.html` (SPA shell). Unknown `/api/`
 paths return JSON `404`, not HTML.
+
+## Ask (optional)
+
+`ai.py` turns "make it look like a thunderstorm" into a scene. It is a second
+*front-end* to `compose()`, not a second way in:
+
+- Claude only ever **picks from the registry**. The JSON Schema it must answer
+  in is derived from `list_backgrounds()` / `list_overlays()` at call time, so
+  its vocabulary tracks `scenes.py` automatically — add a background there and
+  it can use it, no rebuild, same as the client.
+- Each overlay gets its own param shape from `_params_for`, so the model can't
+  set `x` on `label` (a scroll layer has no `x`, and the daemon would reject
+  the whole scene for it).
+- Numbers are clamped and hex is parsed in `_to_request` before anything is
+  composed — JSON Schema can't express `minimum`, so one silly coordinate
+  can't sink a scene.
+- The result goes through the same `_apply()` as a button tap, and the daemon
+  re-validates it like anything else. The model is just another untrusted
+  client of the socket.
+
+Off by default. Give the server a key and restart:
+
+```bash
+# on the Pi
+printf 'ANTHROPIC_API_KEY=sk-ant-...\n' > ~/delia/.env && chmod 600 ~/delia/.env
+sudo pip3 install --break-system-packages anthropic
+sudo systemctl restart panel-api
+```
+
+`.env` is gitignored *and* rsync-excluded — the Pi owns its own copy. With no
+key, `/api/ai` reports `enabled: false`; the box is still rendered but disabled,
+saying so in its placeholder — a control that explains why it's dead beats one
+that silently isn't there.
+
+Tunables (same `.env`): `PANEL_AI_MODEL` (default `claude-opus-5`;
+`claude-haiku-4-5` is faster and cheaper), `PANEL_AI_EFFORT` (default `low`),
+`PANEL_AI_TIMEOUT`.
 
 ## Develop
 

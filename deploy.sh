@@ -33,6 +33,7 @@ EXCLUDES=(
   --exclude '*.egg-info'
   --exclude .git
   --exclude wifi.conf
+  --exclude .env
 )
 
 RSYNC=(rsync -az --human-readable)

@@ -1,3 +1,4 @@
+import { AskBox } from './components/AskBox'
 import { BrightnessSlider } from './components/BrightnessSlider'
 import { ColorPicker } from './components/ColorPicker'
 import { OffButton } from './components/OffButton'
@@ -17,12 +18,16 @@ export function App() {
     brightness,
     loading,
     error,
+    ai,
+    asking,
+    note,
     pickBackground,
     toggleOverlay,
     setOverlayParam,
     pickColor,
     changeBrightness,
     off,
+    ask,
   } = usePanel()
 
   const activeOverlays = overlays.filter((o) => active.includes(o.name))
@@ -30,6 +35,8 @@ export function App() {
   let status: string
   if (error) status = error
   else if (loading) status = 'loading…'
+  else if (asking) status = 'thinking…'
+  else if (note) status = note // what the model said it picked
   else if (background) status = active.length ? `${background} + ${active.join(', ')}` : background
   else status = 'panel is off'
 
@@ -40,6 +47,9 @@ export function App() {
 
       <OffButton isOff={background === null} onSelect={off} />
       <BrightnessSlider value={brightness} onChange={changeBrightness} />
+
+      <h2 className="section">Ask</h2>
+      <AskBox enabled={ai} busy={asking} onAsk={ask} />
 
       <h2 className="section">Scenes</h2>
       <div className="grid">

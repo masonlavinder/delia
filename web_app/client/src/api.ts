@@ -76,3 +76,29 @@ export function setBrightness(value: number): Promise<Result> {
 export function turnOff(): Promise<Result> {
   return request<Result>('/api/off', { method: 'POST' })
 }
+
+/** Whether the server has an API key, i.e. whether to show the ask box. */
+export type AiStatus = { enabled: boolean; model: string | null }
+
+/** What the model chose, echoed back so the UI reflects the panel immediately. */
+export type AiScene = {
+  background: string
+  overlays: OverlaySel[]
+  brightness?: number
+  color?: [number, number, number]
+  /** One short line describing the choice, for the status row. */
+  note: string
+}
+
+export function fetchAiStatus(): Promise<AiStatus> {
+  return request<AiStatus>('/api/ai')
+}
+
+/** Describe a scene in words; the server asks Claude to pick from the registry
+ * and applies the result through the same path as a button tap. */
+export function askScene(prompt: string): Promise<AiScene> {
+  return request<AiScene>('/api/ai/scene', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  })
+}

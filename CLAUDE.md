@@ -29,12 +29,12 @@ phone -> React client (static, served by the API)
 - `web_app/` — the phone UI, a **separate root folder**, itself split
   client/server:
   - `web_app/server/` — Flask (`server.py` routes, `scenes.py` the
-    `BACKGROUNDS` + `OVERLAYS` registry). A scene is composed at request time:
-    `compose(background, overlays)` stacks the background's layers, then each
-    overlay's layers on top; overlays carry per-instance `params`
-    (color/font/position) overrides. Unprivileged; talks to the daemon via
-    `panel.client` (an installed package, so it stands alone). Also static-hosts
-    the built client.
+    `BACKGROUNDS` + `OVERLAYS` registry, `ai.py` the optional ask box). A scene
+    is composed at request time: `compose(background, overlays)` stacks the
+    background's layers, then each overlay's layers on top; overlays carry
+    per-instance `params` (color/font/position) overrides. Unprivileged; talks
+    to the daemon via `panel.client` (an installed package, so it stands
+    alone). Also static-hosts the built client.
   - `web_app/client/` — React + TypeScript + Vite SPA. Hardcodes **no**
     background/overlay list; it renders whatever `/api/backgrounds` and
     `/api/overlays` return, including each overlay's editable-parameter spec.
@@ -88,6 +88,18 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   on the primary layer becomes an editable control in the UI (see `_params_for`).
   The generic "color" background and the global brightness slider are built in,
   not registry entries.
+- **The ask box (`web_app/server/ai.py`) adds no capability.** Claude picks
+  from the registry and nothing else: the JSON Schema it answers in is derived
+  from `list_backgrounds()`/`list_overlays()` per call, so a new background is
+  in its vocabulary with no change to `ai.py`. Its answer goes through the same
+  `_apply()` → `compose()` → daemon path as a button tap and is re-validated
+  there. **Never let it emit raw scene documents** — that would move the
+  vocabulary out of `scenes.py` and make the layer schema the only guard.
+  Optional: no `ANTHROPIC_API_KEY` (in `~/delia/.env` on the Pi, loaded by the
+  unit's `EnvironmentFile=-`) → `/api/ai` reports disabled and the box renders
+  disabled, explaining itself, rather than disappearing.
+  `PANEL_AI_MODEL` overrides the model. Requires `anthropic` on the Pi, which
+  the engine and daemon must never import.
 - **WiFi is config-driven, not hand-typed `nmcli`.** The networks the Pi knows
   live in `matrix/raspberry_pi/pi-setup/wifi.conf` (gitignored, from
   `wifi.conf.example`); `apply-wifi.sh` renders each `[section]` into a
