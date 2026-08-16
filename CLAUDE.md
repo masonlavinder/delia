@@ -39,7 +39,8 @@ phone -> React client (static, served by the API)
     background/overlay list; it renders whatever `/api/backgrounds` and
     `/api/overlays` return, including each overlay's editable-parameter spec.
     A generic color-picker background and a global brightness slider are built
-    in. See `web_app/README.md`.
+    in. `src/styles/` is the Knurled Studio design layer, vendored. See
+    `web_app/README.md`.
 - `matrix/raspberry_pi/` — everything Pi-specific: the build/repair runbook
   (`led-matrix-setup.md`), SD-card headless setup (`pi-setup/`), diagnostics
   (`check-address-lines.py`, `tune-slowdown.sh`), and the systemd units.
@@ -100,6 +101,19 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   disabled, explaining itself, rather than disappearing.
   `PANEL_AI_MODEL` overrides the model. Requires `anthropic` on the Pi, which
   the engine and daemon must never import.
+- **The UI follows Knurled Studio.** Rules in `~/Desktop/knurled-studio/KNURLED.md`;
+  the design layer is **vendored** into `web_app/client/src/styles/` because
+  delia is a separate repo that rsyncs to a Pi and cannot resolve a
+  `@knurled/kit` workspace dependency. Chamfers, never `border-radius`. No
+  faked light — no gradients, shadows or glows; depth is hairline borders and
+  flat surface steps. Colour only from a custom property (raw hex belongs in
+  `tokens.css`). Durations from `--dur-*`. Grain at 45°, never rotated. Dark
+  only. **`global.css` must be imported first** — it declares the layer order,
+  and a layer named before that declaration is pinned where it lands.
+  Verdigris is reserved for what leaves the device, which here is exactly the
+  overlays `/api/overlays` flags `dynamic`. Verify with the studio's own lint,
+  which needs nothing installed here:
+  `cd ../knurled-studio && npx stylelint --config packages/stylelint-config/index.js "…/web_app/client/src/**/*.css"`.
 - **WiFi is config-driven, not hand-typed `nmcli`.** The networks the Pi knows
   live in `matrix/raspberry_pi/pi-setup/wifi.conf` (gitignored, from
   `wifi.conf.example`); `apply-wifi.sh` renders each `[section]` into a
