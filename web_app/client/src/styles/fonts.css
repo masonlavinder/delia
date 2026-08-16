@@ -1,0 +1,12 @@
+/* fonts.css — ported from @knurled/kit.
+   Self-hosted. No CDN link, no third-party request on page load — which is
+   also the only thing that works here: the Pi serves this over the LAN and
+   the phone loading it may have no route to the internet at all.
+
+   Latin subset only, and only the weights the type scale actually uses:
+   400 body, 500 the wordmark and headings, 400 mono for every label and
+   numeral. Vite fingerprints the woff2 into dist/ and deploy.sh rsyncs it. */
+
+@import '@fontsource/geist/latin-400.css';
+@import '@fontsource/geist/latin-500.css';
+@import '@fontsource/geist-mono/latin-400.css';

@@ -1,0 +1,129 @@
+/* patterns.css — ported from @knurled/kit, with one deliberate deviation.
+
+   In the studio these are reached only via `composes:` from a CSS Module and
+   are never written into JSX. delia's client is plain CSS with global class
+   names — converting six components to CSS Modules is an architecture change,
+   not a restyle — so here they ARE class names in markup. That is the one
+   knurled rule this port cannot honour; everything below it is intact.
+
+   Second deviation, in the chamfer: the studio builds it from two elements
+   (a shell that paints the edge, a face inset 1px that paints the surface)
+   because clip-path clips a border. That needs a wrapper around every button.
+   The same two layers are done here with the element's own background as the
+   shell and a ::before as the face, so a <button> stays one element. Geometry
+   is identical — same polygon, same 1px inset. An <input> cannot carry a
+   ::before, so text fields still take a wrapper. */
+
+@layer patterns {
+
+  /* ---- type treatments ------------------------------------------ */
+
+  .mono-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .mono-value {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ---- chamfer --------------------------------------------------- */
+
+  .chamfer {
+    position: relative;
+    /* Own stacking context, so the ::before face paints above this
+       background and below the content rather than behind everything. */
+    isolation: isolate;
+    background: var(--edge);
+    clip-path: polygon(
+      var(--chamfer) 0,
+      100% 0,
+      100% calc(100% - var(--chamfer)),
+      calc(100% - var(--chamfer)) 100%,
+      0 100%,
+      0 var(--chamfer)
+    );
+  }
+
+  .chamfer::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 1px;
+    background: var(--face, var(--surface-panel));
+    clip-path: polygon(
+      calc(var(--chamfer) - 1px) 0,
+      100% 0,
+      100% calc(100% - var(--chamfer) + 1px),
+      calc(100% - var(--chamfer) + 1px) 100%,
+      0 100%,
+      0 calc(var(--chamfer) - 1px)
+    );
+  }
+
+  .chamfer-sm { --chamfer: var(--chamfer-sm); }
+
+  /* A chamfered surface cannot show an outline — clip-path removes it. The
+     inset ring is the documented substitute, and it lands exactly on the 1px
+     edge, so focus reads as the edge lighting up. */
+  .chamfer:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 1px var(--lavinder-400);
+  }
+
+  /* ---- rules and marks -------------------------------------------- */
+
+  .hairline-above { border-top: var(--hairline); }
+
+  .knurl {
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        var(--knurl-line) 0 var(--knurl-width),
+        transparent var(--knurl-width) var(--knurl-pitch)),
+      repeating-linear-gradient(
+        -45deg,
+        var(--knurl-line) 0 var(--knurl-width),
+        transparent var(--knurl-width) var(--knurl-pitch));
+  }
+
+  /* Strips are sized in whole rows; any other height cuts the bottom row
+     through the middle. Two rows is what the studio's header and footer use. */
+  .knurl-strip {
+    height: calc(var(--knurl-row) * 2);
+  }
+
+  /* ---- motion ------------------------------------------------------ */
+
+  .detent { transition: all var(--dur-detent) var(--ease-detent); }
+
+  .fade {
+    transition:
+      color var(--dur-detent) var(--ease-out),
+      background-color var(--dur-detent) var(--ease-out);
+  }
+
+  /* ---- utility ------------------------------------------------------ */
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

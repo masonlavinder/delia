@@ -11,11 +11,16 @@ web_app/
 │   └── ai.py        optional: a typed sentence -> a pick from that registry
 └── client/          React + TypeScript + Vite
     ├── src/
-    │   ├── App.tsx          layout + status line
+    │   ├── App.tsx          layout + status readout
     │   ├── usePanel.ts      all state: polling, optimistic scene switching
     │   ├── api.ts           typed wrapper over /api/*
-    │   ├── components/      SceneButton, OffButton
-    │   └── styles.css
+    │   ├── components/      SceneButton, OverlayChip, AskBox, …
+    │   ├── styles/          the design layer, ported from @knurled/kit
+    │   │   ├── global.css   layer order + reset + base — import FIRST
+    │   │   ├── tokens.css   custom properties only
+    │   │   ├── fonts.css    self-hosted Geist, latin subset
+    │   │   └── patterns.css chamfer, knurl, mono treatments
+    │   └── styles.css       delia's own components layer
     └── dist/        build output — gitignored, rsynced to the Pi
 ```
 
@@ -89,6 +94,62 @@ that silently isn't there.
 Tunables (same `.env`): `PANEL_AI_MODEL` (default `claude-opus-5`;
 `claude-haiku-4-5` is faster and cheaper), `PANEL_AI_EFFORT` (default `low`),
 `PANEL_AI_TIMEOUT`.
+
+## Styling
+
+delia follows the Knurled Studio design system. The rules are in `KNURLED.md`
+in that repo; the short version is chamfers instead of rounded corners, no
+faked light (no gradients, shadows or glows — depth is hairline borders and
+flat surface steps), colour only from a custom property, durations from
+`--dur-*`, one grain direction at 45°, dark only.
+
+The token layer is **vendored, not depended on** — delia is a separate repo
+that deploys by rsync to a Pi, so a `@knurled/kit` workspace dependency has
+nowhere to resolve from. `src/styles/` is a copy; keep it in step with
+`packages/kit/src/` by hand, the same trade the studio already makes for
+`favicon.svg` and `og.png`.
+
+Import order in `main.tsx` is load-bearing: **`global.css` first.** A layer
+takes its position from wherever its name first appears, so any `@layer` block
+emitted ahead of the declaration is pinned where it lands and the declared
+order silently stops applying.
+
+Two deliberate deviations from the studio, both because delia's client is
+plain CSS rather than CSS Modules:
+
+- **Patterns are class names in JSX.** The studio reaches them only through
+  `composes:` and never writes them into markup. Honouring that here means
+  converting every component to CSS Modules — an architecture change, not a
+  restyle. Worth doing if delia's UI grows.
+- **The chamfer is one element, not two.** The studio pairs a shell that paints
+  the edge with a face inset 1px that paints the surface, because `clip-path`
+  clips a border. Here the element's own background is the shell and a
+  `::before` is the face, so a `<button>` needs no wrapper. Same polygon, same
+  1px inset. An `<input>` can't carry a `::before`, so the ask box keeps the
+  wrapper.
+
+Plus three delia-local tokens, flagged as such at the bottom of `tokens.css`:
+`--panel-max` (a grid of scene tiles is not a page of prose), `--hit` (44px —
+a thumb in a dark room), and `--text-field` (16px, or iOS zooms the page on
+focus; the studio's `--text-base` is 15px).
+
+**The second hue is data-driven.** Verdigris means "leaves the studio", so in
+delia it marks exactly one thing: an overlay that fetches over the network.
+`/api/overlays` reports `dynamic` per overlay, so which ones those are stays
+declared beside the overlay in `scenes.py` rather than as a hardcoded
+`name === 'weather'` in the client.
+
+The studio's stylelint config is the enforcement, and it runs against delia
+with no dependency here:
+
+```bash
+cd ../knurled-studio    # wherever it lives
+npx stylelint --config packages/stylelint-config/index.js \
+  "$OLDPWD/web_app/client/src/**/*.css"
+```
+
+Adding stylelint to delia proper would make that a build failure rather than a
+thing to remember. Not done — it is a dependency, and KNURLED.md says ask.
 
 ## Develop
 

@@ -191,11 +191,17 @@ def list_backgrounds() -> list[dict]:
 
 
 def list_overlays() -> list[dict]:
-    """Overlays plus each one's editable-parameter spec (for the UI editors)."""
+    """Overlays plus each one's editable-parameter spec (for the UI editors).
+
+    `dynamic` marks an overlay that fetches live data off the network. The UI
+    colours those differently, so which ones they are stays declared here with
+    the overlay rather than as a hardcoded name in the client.
+    """
     out = []
     for n, o in OVERLAYS.items():
         template = o["template"] if "template" in o else o["layers"][0]
-        out.append({"name": n, "emoji": o.get("emoji"), "params": _params_for(template)})
+        out.append({"name": n, "emoji": o.get("emoji"),
+                    "params": _params_for(template), "dynamic": "build" in o})
     return out
 
 

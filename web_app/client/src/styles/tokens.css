@@ -1,0 +1,118 @@
+/* tokens.css — ported from @knurled/kit.
+   Custom properties only. No selectors with declarations, ever.
+   Importing this file must never impose a style on anything.
+
+   delia is not in the knurled pnpm workspace (separate repo, rsync deploy to
+   a Pi), so the token layer is vendored rather than depended on. Keep the
+   values in step with packages/kit/src/tokens.css by hand — the same trade
+   the studio already makes for favicon.svg and og.png.
+
+   The delia-local block at the bottom is the only place this file may differ. */
+
+@layer tokens {
+  :root {
+    /* ---- substrate ------------------------------------------------ */
+    --stock-950: #0D0D0C;   /* page canvas */
+    --stock-900: #141413;   /* panel face */
+    --stock-800: #1C1C1A;   /* raised, inputs */
+    --stock-700: #262624;   /* hairline */
+    --stock-600: #3A3A37;   /* strong edge */
+    --stock-400: #6E6E68;   /* DECORATIVE ONLY — 3.79:1, fails AA for text */
+    --stock-200: #8A8A82;   /* muted text — 5.59:1 */
+    --bone:      #EDEBE4;   /* primary text */
+
+    /* ---- house finish: Lavinder ----------------------------------- */
+    --lavinder-300: #C8A8E8;  /* accent text below 14px, hover */
+    --lavinder-400: #A87BD4;  /* accent fills, text 14px and up */
+    --lavinder-600: #5E3F7A;  /* edges, selection */
+    --lavinder-900: #241A2E;  /* tint fill */
+
+    /* ---- verdigris: the second hue --------------------------------- */
+    --verdigris-400: #55BDAF;  /* 8.60:1 — text, edges, fills */
+    --verdigris-900: #102A26;  /* tint fill */
+
+    /* ---- semantic aliases ----------------------------------------- */
+    --surface-page:  var(--stock-950);
+    --surface-panel: var(--stock-900);
+    --surface-raise: var(--stock-800);
+    --edge:          var(--stock-700);
+    --edge-strong:   var(--stock-600);
+    --text-primary:  var(--bone);
+    --text-muted:    var(--stock-200);
+    --text-accent:   var(--lavinder-300);
+    --text-external: var(--verdigris-400);  /* anything that leaves the studio */
+    --rule:          var(--stock-400);
+
+    /* ---- type ------------------------------------------------------ */
+    --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+
+    --text-2xs:  10px;   /* status chips */
+    --text-xs:   11px;   /* part numbers, mono labels */
+    --text-sm:   13px;
+    --text-base: 15px;
+    --text-lg:   19px;
+    --text-xl:   24px;
+    --text-2xl:  32px;
+
+    --leading-tight: 1.15;
+    --leading-snug:  1.35;
+    --leading-body:  1.65;
+
+    --track-label:   0.09em;   /* uppercase mono */
+    --track-chip:    0.1em;
+    --track-display: -0.01em;
+
+    /* ---- measure --------------------------------------------------- */
+    /* 4px grid. Machined parts are dimensioned; so is this. */
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-5:  20px;
+    --space-6:  24px;
+    --space-8:  32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+
+    --gutter: var(--space-4);
+
+    /* ---- geometry -------------------------------------------------- */
+    --chamfer:    13px;
+    --chamfer-sm: 8px;
+    --hairline:   1px solid var(--edge);
+    --hairline-strong: 1px solid var(--edge-strong);
+
+    /* knurl: 2px lines on a 7px pitch, crossed at 45 degrees.
+       Two families of lines spaced --knurl-pitch apart and crossing at a
+       right angle make a square lattice standing on its corner, so one row
+       of diamonds is pitch x sqrt(2) tall. Strips are sized in whole rows;
+       anything else clips the bottom row. */
+    --knurl-line:  var(--stock-700);
+    --knurl-width: 2px;
+    --knurl-pitch: 7px;
+    --knurl-row:   calc(var(--knurl-pitch) * 1.41421356);
+
+    /* ---- motion ----------------------------------------------------- */
+    --dur-fast:   70ms;
+    --dur-detent: 110ms;
+    --dur-slow:   220ms;
+    --ease-detent: cubic-bezier(0.2, 0.9, 0.3, 1.2);  /* slight overshoot */
+    --ease-out:    cubic-bezier(0.2, 0, 0.1, 1);
+
+    /* ---- delia-local ------------------------------------------------ */
+    /* A phone held at arm's length in a dark room, not a page of prose.
+       --page-max would be 960px in the studio; a two-column grid of scene
+       tiles has nothing to do with that width. */
+    --panel-max: 560px;
+
+    /* Touch targets. Below this a thumb misses in the dark. */
+    --hit: 44px;
+
+    /* iOS zooms the page when a focused input is under 16px. The studio's
+       --text-base is 15px, so text fields opt out of the scale on purpose. */
+    --text-field: 16px;
+  }
+}

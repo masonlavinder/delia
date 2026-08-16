@@ -7,8 +7,11 @@ type Props = {
  * compositions so it survives scene switches. */
 export function BrightnessSlider({ value, onChange }: Props) {
   return (
-    <div className="brightness">
-      <label htmlFor="brightness">☀ brightness — {value}%</label>
+    <div className="meter">
+      <div className="meter-head">
+        <label htmlFor="brightness" className="mono-label">brightness</label>
+        <span className="mono-value tabular">{value} %</span>
+      </div>
       <input
         id="brightness"
         type="range"

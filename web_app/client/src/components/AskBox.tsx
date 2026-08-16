@@ -10,7 +10,7 @@ type Props = {
 }
 
 /** Describe a scene in words. The server hands it to Claude, which picks from
- * the same backgrounds and overlays the buttons below offer.
+ * the same backgrounds and overlays the tiles below offer.
  *
  * Always rendered, even with no key on the server: a box that says why it's
  * dead beats one that silently isn't there. */
@@ -29,21 +29,29 @@ export function AskBox({ enabled, busy, onAsk }: Props) {
         setText('')
       }}
     >
-      {/* The disabled hint is kept short so a phone doesn't truncate it; the
-          full instructions live in the title and web_app/README.md. */}
-      <input
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        placeholder={off ? 'no API key on the server' : 'make it look like a thunderstorm'}
-        title={off ? 'Set ANTHROPIC_API_KEY for panel-api and restart it.' : undefined}
-        aria-label="describe a scene"
-        enterKeyHint="go"
-        autoCapitalize="none"
-        maxLength={500}
-        disabled={busy || off}
-      />
-      <button type="submit" disabled={busy || off || !prompt} aria-label="apply">
-        {busy ? '…' : '✨'}
+      {/* An <input> cannot carry a ::before, so the chamfer keeps its wrapper
+          here — the one place the studio's two-element construction survives. */}
+      <div className="chamfer ask-field">
+        <input
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder={off ? 'no API key on the server' : 'a thunderstorm, clock in white'}
+          title={off ? 'Set ANTHROPIC_API_KEY for panel-api and restart it.' : undefined}
+          aria-label="describe a scene"
+          enterKeyHint="go"
+          autoCapitalize="none"
+          maxLength={500}
+          disabled={busy || off}
+        />
+      </div>
+      {/* Text, not an arrow glyph — Geist's latin subset has no U+2192. */}
+      <button
+        type="submit"
+        className="chamfer ask-go mono-label"
+        disabled={busy || off || !prompt}
+        aria-label="apply"
+      >
+        {busy ? '···' : 'go'}
       </button>
     </form>
   )

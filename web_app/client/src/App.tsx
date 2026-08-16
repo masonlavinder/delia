@@ -32,26 +32,41 @@ export function App() {
 
   const activeOverlays = overlays.filter((o) => active.includes(o.name))
 
+  // Spec-sheet register: what is on the panel, separated the way a part
+  // number is. The model's note is prose and stands on its own.
   let status: string
   if (error) status = error
-  else if (loading) status = 'loading…'
-  else if (asking) status = 'thinking…'
-  else if (note) status = note // what the model said it picked
-  else if (background) status = active.length ? `${background} + ${active.join(', ')}` : background
-  else status = 'panel is off'
+  else if (loading) status = 'reading panel'
+  else if (asking) status = 'composing'
+  else if (note) status = note
+  else if (background) status = [background, ...active].join(' · ')
+  else status = 'dark'
 
   return (
     <main>
-      <h1>💡 delia panel</h1>
-      <p className={error ? 'sub error' : 'sub'} role="status">{status}</p>
+      <div className="strip knurl knurl-strip" aria-hidden="true" />
+
+      <header className="lockup">
+        <span className="chamfer mark" aria-hidden="true" />
+        <span className="wordmark">delia</span>
+        <span className="spec mono-label">128 × 64 · hub75</span>
+      </header>
+
+      <p className={error ? 'readout error' : 'readout'} role="status">
+        {status}
+      </p>
 
       <OffButton isOff={background === null} onSelect={off} />
       <BrightnessSlider value={brightness} onChange={changeBrightness} />
 
-      <h2 className="section">Ask</h2>
+      <h2 className="section">
+        <span className="mono-label">ask</span>
+      </h2>
       <AskBox enabled={ai} busy={asking} onAsk={ask} />
 
-      <h2 className="section">Scenes</h2>
+      <h2 className="section">
+        <span className="mono-label">background</span>
+      </h2>
       <div className="grid">
         {backgrounds.map((b) => (
           <SceneButton
@@ -65,7 +80,9 @@ export function App() {
         <ColorPicker color={color} active={background === 'color'} onPick={pickColor} />
       </div>
 
-      <h2 className="section">Info</h2>
+      <h2 className="section">
+        <span className="mono-label">overlays</span>
+      </h2>
       <div className="chips">
         {overlays.map((o) => (
           <OverlayChip
@@ -73,6 +90,7 @@ export function App() {
             label={o.name}
             emoji={o.emoji}
             active={active.includes(o.name)}
+            external={o.dynamic}
             onToggle={() => toggleOverlay(o.name)}
           />
         ))}

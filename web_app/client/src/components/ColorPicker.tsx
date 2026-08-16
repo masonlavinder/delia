@@ -6,17 +6,20 @@ type Props = {
   onPick: (hex: string) => void
 }
 
-/** A "generic" background: any solid color. Styled like a scene button; the
- * whole tile is a native color input, so tapping it opens the OS color picker. */
+/** A "generic" background: any solid colour. Styled as a scene tile; the whole
+ * tile is a native colour input, so tapping it opens the OS picker.
+ *
+ * The swatch is the one colour on the page that is not a token — it is the
+ * user's data, not the design's. */
 export function ColorPicker({ color, active, onPick }: Props) {
   return (
-    <label className={active ? 'scene color active' : 'scene color'}>
+    <label className={active ? 'chamfer scene picker active' : 'chamfer scene picker'}>
       <span className="swatch" style={{ background: color }} aria-hidden="true" />
-      color
+      <span className="mono-label">colour</span>
       <input
         type="color"
         value={color}
-        aria-label="background color"
+        aria-label="background colour"
         onChange={(e) => onPick(e.target.value)}
       />
     </label>

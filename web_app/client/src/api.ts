@@ -15,8 +15,13 @@ export type ParamSpec =
 export type ParamValue = [number, number, number] | string | number
 export type Params = Record<string, ParamValue>
 
-/** An overlay plus the spec of what's editable about it (color/font/position). */
-export type Overlay = Item & { params: Record<string, ParamSpec> }
+/** An overlay plus the spec of what's editable about it (color/font/position).
+ * `dynamic` means it fetches live data off the network — the UI marks those in
+ * the second hue. Optional: a client can be deployed ahead of its server. */
+export type Overlay = Item & {
+  params: Record<string, ParamSpec>
+  dynamic?: boolean
+}
 
 /** An overlay selection sent to the panel: its name + any param overrides. */
 export type OverlaySel = { name: string; params?: Params }

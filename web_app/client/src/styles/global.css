@@ -1,0 +1,108 @@
+/* global.css — ported from @knurled/kit.
+   Imported exactly once, and FIRST — before tokens.css and before any
+   component styles. Declares the cascade order for the whole app.
+
+   A layer takes its position from wherever its name first appears. If any
+   @layer block is emitted ahead of the statement below, that layer is already
+   pinned and the declared order silently stops applying. Importing this file
+   first is what makes the order authoritative rather than a side effect of
+   module graph order. */
+
+@layer reset, tokens, base, patterns, components;
+
+/* ================================================================
+   reset
+   ================================================================ */
+
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  * { margin: 0; }
+
+  html {
+    -moz-text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+
+  body { min-height: 100svh; }
+
+  img, picture, svg, video, canvas {
+    display: block;
+    max-width: 100%;
+  }
+
+  input, button, textarea, select {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  button { background: none; border: none; padding: 0; cursor: pointer; }
+
+  p, h1, h2, h3, h4, li { overflow-wrap: break-word; }
+
+  /* A control panel is tapped, never read for long. Text selection on a
+     mis-held phone is noise, so it is off everywhere but the status readout. */
+  * { -webkit-tap-highlight-color: transparent; }
+}
+
+/* ================================================================
+   base
+   ================================================================ */
+
+@layer base {
+  html {
+    color-scheme: dark;
+    scrollbar-color: var(--stock-600) transparent;
+    scrollbar-width: thin;
+  }
+
+  body {
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3 {
+    font-weight: 500;
+    line-height: var(--leading-tight);
+    letter-spacing: var(--track-display);
+    text-wrap: balance;
+  }
+
+  h1 { font-size: var(--text-xl); }
+  h2 { font-size: var(--text-lg); }
+  h3 { font-size: var(--text-base); }
+
+  p { text-wrap: pretty; }
+
+  code, kbd, samp { font-family: var(--font-mono); }
+
+  /* Focus is never removed. clip-path clips outline, so chamfered surfaces
+     re-implement this as an inset ring — see .focus-inset in patterns.css. */
+  :focus-visible {
+    outline: 1px solid var(--lavinder-400);
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) { outline: none; }
+
+  ::selection {
+    background: var(--lavinder-600);
+    color: var(--bone);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

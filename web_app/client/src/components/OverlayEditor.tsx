@@ -24,23 +24,27 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 /** Inline editor for one active overlay: a control per tunable parameter
- * (color swatch, font dropdown, position sliders), driven by the server's spec. */
+ * (colour swatch, font dropdown, position sliders), driven by the server's
+ * spec. Reads as a spec table — label left, value right. */
 export function OverlayEditor({ overlay, values, onChange }: Props) {
   const entries = Object.entries(overlay.params)
   if (entries.length === 0) return null
 
   return (
-    <div className="editor">
-      <div className="editor-title">
-        {overlay.emoji && <span className="emoji-sm">{overlay.emoji}</span>}
-        {overlay.name}
+    <div className="chamfer editor">
+      <div className="editor-head">
+        {overlay.emoji && (
+          <span className="emoji-sm" aria-hidden="true">{overlay.emoji}</span>
+        )}
+        <span className="mono-label">{overlay.name}</span>
       </div>
+
       {entries.map(([key, spec]) => {
         if (spec.type === 'color') {
           const rgb = (values[key] as [number, number, number]) ?? spec.default
           return (
             <label className="field" key={key}>
-              <span>{key}</span>
+              <span className="mono-label">{key}</span>
               <input
                 type="color"
                 value={rgbToHex(rgb)}
@@ -49,11 +53,12 @@ export function OverlayEditor({ overlay, values, onChange }: Props) {
             </label>
           )
         }
+
         if (spec.type === 'font') {
           const val = (values[key] as string) ?? spec.default
           return (
             <label className="field" key={key}>
-              <span>{key} (size)</span>
+              <span className="mono-label">{key}</span>
               <select value={val} onChange={(e) => onChange(key, e.target.value)}>
                 {spec.options.map((o) => (
                   <option key={o} value={o}>
@@ -64,11 +69,12 @@ export function OverlayEditor({ overlay, values, onChange }: Props) {
             </label>
           )
         }
+
         const val = (values[key] as number) ?? spec.default
         return (
           <label className="field" key={key}>
-            <span>
-              {key} — {val}
+            <span className="mono-label">
+              {key} <span className="mono-value tabular">{val}</span>
             </span>
             <input
               type="range"
