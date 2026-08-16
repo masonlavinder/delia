@@ -20,6 +20,7 @@ delia/
 │   ├── server/        Flask: the control API + static host for the built client;
 │   │                  owns the scene documents, talks to the daemon
 │   └── client/        React + TypeScript (Vite) SPA; build on a laptop, not the Pi
+├── instructions/      step-by-step how-tos for rare tasks (e.g. new WiFi network)
 ├── clove_plans/       (placeholder)
 └── deploy.sh          push to the Pi (client / api / engine / units / all)
 ```
@@ -33,8 +34,9 @@ services, enabled on boot. Nothing spawns a process; nothing derives a filesyste
 path from input; every scene is re-validated at the daemon (the trust boundary).
 
 - **Control it:** open `http://delia-pi.local:8080` on your phone (home WiFi).
-- **Reach the Pi:** `ssh mlavinder@delia-pi.local` (passwordless key; `sudo`
-  needs a password).
+- **Reach the Pi:** `ping delia-pi.local` to see if it's up, then
+  `ssh mlavinder@delia-pi.local` (passwordless key; `sudo` needs a password).
+  More: [instructions/reaching-the-pi.md](instructions/reaching-the-pi.md).
 - **Deploy:** `./deploy.sh` (or `./deploy.sh client` for a UI-only change —
   that one needs no service restart). `./deploy.sh -h` for all targets.
 
@@ -44,3 +46,6 @@ path from input; every scene is re-validated at the daemon (the trust boundary).
 - **`matrix/README.md`** — the panel system in depth.
 - **`matrix/raspberry_pi/led-matrix-setup.md`** — hardware build/repair runbook;
   read it first if the panel misbehaves or you reflash the card.
+- **`instructions/`** — procedural how-tos, one file per task:
+  [reaching the Pi](instructions/reaching-the-pi.md) when it's not answering,
+  and [moving it to a new WiFi network](instructions/wifi-new-network.md).

@@ -1,0 +1,44 @@
+# wifi.conf.example — the WiFi networks the Pi should know about.
+#
+# Copy to `wifi.conf` (same directory), fill it in, then push it:
+#
+#   matrix/raspberry_pi/pi-setup/apply-wifi.sh
+#
+# `wifi.conf` is gitignored — it holds real passwords. This template is the
+# only copy that belongs in git.
+#
+# Each [section] becomes one NetworkManager profile on the Pi, installed as
+# /etc/NetworkManager/system-connections/<section>.nmconnection. The section
+# name is just a label; the SSID is what the Pi actually joins. Re-running
+# apply-wifi.sh overwrites a profile of the same name, so this file is the
+# source of truth: edit it, re-apply, done.
+#
+# The Pi keeps every profile listed here and joins whichever one is in range
+# (highest `priority` wins if several are). So you do NOT have to delete the
+# old network to add a new one — keep both and it roams between them.
+#
+# Syntax notes:
+#   - a `#` only starts a comment at the START of a line, so passwords may
+#     contain `#`. Don't put a trailing comment after a value.
+#   - wrap a value in "double quotes" to keep leading/trailing spaces.
+#   - `=` inside a password is fine; only the first `=` on a line splits it.
+
+[home]
+ssid = CHANGE_ME_your_wifi_name
+psk = CHANGE_ME_your_wifi_password
+# Preferred when more than one known network is in range. Higher wins.
+priority = 10
+# Set to true only for a network that does not broadcast its SSID.
+hidden = false
+
+# A second network — delete this block if you only ever use one.
+# [workshop]
+# ssid = CHANGE_ME
+# psk = CHANGE_ME
+# priority = 5
+
+# An open network (no password): leave `psk` empty.
+# [guest]
+# ssid = CHANGE_ME
+# psk =
+# priority = 1

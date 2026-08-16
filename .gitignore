@@ -1,3 +1,11 @@
 node_modules/
 __pycache__/
 *.pyc
+
+# Filled-in copies of the pi-setup templates. These hold real passwords — only
+# the *.example versions belong in git.
+matrix/raspberry_pi/pi-setup/wifi.conf
+matrix/raspberry_pi/pi-setup/boot_files/custom.toml
+matrix/raspberry_pi/pi-setup/boot_files/wpa_supplicant.conf
+*.nmconnection
+*.conf

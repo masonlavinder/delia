@@ -32,6 +32,7 @@ EXCLUDES=(
   --exclude .pytest_cache
   --exclude '*.egg-info'
   --exclude .git
+  --exclude wifi.conf
 )
 
 RSYNC=(rsync -az --human-readable)

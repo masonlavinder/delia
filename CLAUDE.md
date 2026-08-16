@@ -44,9 +44,13 @@ phone -> React client (static, served by the API)
   (`led-matrix-setup.md`), SD-card headless setup (`pi-setup/`), diagnostics
   (`check-address-lines.py`, `tune-slowdown.sh`), and the systemd units.
 
+- `instructions/` — procedural how-tos, one `.md` per task, indexed by its
+  `README.md`. Rare operations you'd otherwise re-derive (currently: moving the
+  Pi to a new WiFi network). Not architecture — that's this file.
+
 Layout: `matrix/panel/` = portable engine (runs on the mock in CI),
 `matrix/raspberry_pi/` = Pi-specific tooling/config, `web_app/` = the phone UI
-(`server/` + `client/`). No `pi_apps/`.
+(`server/` + `client/`), `instructions/` = how-tos. No `pi_apps/`.
 
 Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
 `panel-api` (mlavinder). The old CLI/direct-GPIO approach (`display`, `run.sh`,
@@ -84,7 +88,20 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   on the primary layer becomes an editable control in the UI (see `_params_for`).
   The generic "color" background and the global brightness slider are built in,
   not registry entries.
-- Reach the Pi: `ssh mlavinder@delia-pi.local` (passwordless SSH key).
+- **WiFi is config-driven, not hand-typed `nmcli`.** The networks the Pi knows
+  live in `matrix/raspberry_pi/pi-setup/wifi.conf` (gitignored, from
+  `wifi.conf.example`); `apply-wifi.sh` renders each `[section]` into a
+  NetworkManager keyfile and installs it over SSH — or with `--write-to` onto a
+  mounted SD card when the Pi is unreachable. Adding a network never removes the
+  old one: the Pi has no ethernet, so the old profile is the only way back in.
+  Procedure: `instructions/wifi-new-network.md`.
+- The Pi runs **Raspberry Pi OS on Debian 13 (trixie)** with **NetworkManager**
+  managing WiFi — profiles are keyfiles in
+  `/etc/NetworkManager/system-connections/`, root-owned `0600` or NM ignores
+  them. Reflashing the card to fix a network problem throws away the compiled
+  `rpi-rgb-led-matrix` and the whole install; don't.
+- Reach the Pi: `ping delia-pi.local`, then `ssh mlavinder@delia-pi.local`
+  (passwordless SSH key); `instructions/reaching-the-pi.md` when it won't answer.
   **`sudo` now requires a password** (the broad NOPASSWD grant was removed) — to
   run a privileged command in a session, prefix it with `! sudo …`.
 
