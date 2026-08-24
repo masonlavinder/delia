@@ -19,7 +19,7 @@ The client is a Vite/React app built ahead of time on a dev machine (the Pi 3 A+
 has 512 MB — see web_app/README.md). Same origin, so no CORS.
 
 Run:   python3 server/server.py     (or the panel-api systemd unit)
-Open:  http://delia-pi.local:8080
+Open:  http://delia.local:8080
 """
 import os
 from pathlib import Path

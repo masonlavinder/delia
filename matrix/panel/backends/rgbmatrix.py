@@ -1,7 +1,8 @@
 """Real-hardware backend. Only imports on the Pi, as root.
 
 Known-working config for this panel (do not change; see led-matrix-setup.md):
-rows=64, cols=128, adafruit-hat (E on stock GPIO 24), gpio_slowdown=2.
+rows=64, cols=128, adafruit-hat (E on stock GPIO 24), gpio_slowdown=2,
+Rotate:180 for the way it hangs in its frame.
 Double-buffered via CreateFrameCanvas()/SwapOnVSync().
 """
 from __future__ import annotations
@@ -71,6 +72,18 @@ class RGBMatrixBackend:
         # setting corrects Fill/DrawText/SetImage uniformly. Override if a future
         # panel differs.
         opts.led_rgb_sequence = os.environ.get("PANEL_RGB_SEQUENCE", "BGR")
+        # The panel hangs in its frame upside down, so the whole image is turned
+        # here, in the library's pixel mapper. Doing it at the bottom means every
+        # scene keeps ordinary coordinates -- x from the left, y down from the
+        # top -- and nothing above this file knows the mount is inverted.
+        # Only 0 and 180 are usable: 90/270 would make the panel 64x128, and the
+        # daemon validates every scene against a fixed 128x64 (schema.py
+        # PANEL_CAPABILITIES), so they would render off the edge.
+        rotate = os.environ.get("PANEL_ROTATE", "180")
+        if rotate not in ("0", "180"):
+            raise ValueError(f"PANEL_ROTATE must be 0 or 180, got {rotate!r}")
+        if rotate != "0":
+            opts.pixel_mapper_config = f"Rotate:{rotate}"
         opts.drop_privileges = False
         self._m = RGBMatrix(options=opts)
         self.width = self._m.width

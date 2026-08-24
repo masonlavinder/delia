@@ -25,7 +25,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF="${WIFI_CONF:-$HERE/wifi.conf}"
-PI_HOST="${PI_HOST:-mlavinder@delia-pi.local}"
+PI_HOST="${PI_HOST:-mlavinder@delia.local}"
 NM_DIR=/etc/NetworkManager/system-connections
 
 say() { printf '\033[1;35m==>\033[0m %s\n' "$*"; }

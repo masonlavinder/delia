@@ -33,9 +33,9 @@ A long-lived **root daemon** (`panel-renderer`) owns the panel and accepts
 services, enabled on boot. Nothing spawns a process; nothing derives a filesystem
 path from input; every scene is re-validated at the daemon (the trust boundary).
 
-- **Control it:** open `http://delia-pi.local:8080` on your phone (home WiFi).
-- **Reach the Pi:** `ping delia-pi.local` to see if it's up, then
-  `ssh mlavinder@delia-pi.local` (passwordless key; `sudo` needs a password).
+- **Control it:** open `http://delia.local:8080` on your phone (home WiFi).
+- **Reach the Pi:** `ping delia.local` to see if it's up, then
+  `ssh mlavinder@delia.local` (passwordless key; `sudo` needs a password).
   More: [instructions/reaching-the-pi.md](instructions/reaching-the-pi.md).
 - **Deploy:** `./deploy.sh` (or `./deploy.sh client` for a UI-only change —
   that one needs no service restart). `./deploy.sh -h` for all targets.

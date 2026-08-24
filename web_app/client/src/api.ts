@@ -8,6 +8,7 @@ export type Item = {
 
 /** One tunable parameter of an overlay, as described by the server. */
 export type ParamSpec =
+  | { type: 'text'; max_length: number; default: string }
   | { type: 'color'; default: [number, number, number] }
   | { type: 'font'; options: string[]; default: string }
   | { type: 'int'; min: number; max: number; default: number }

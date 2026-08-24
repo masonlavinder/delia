@@ -11,8 +11,8 @@ Two building blocks, one place to manage them:
 layers first, then each overlay's layers on top. The daemon composites layers
 back-to-front, so overlays draw over the background.
 
-Overlays are tunable: each exposes an editable-parameter spec (color / font /
-position) derived from its layer, and callers can pass per-overlay overrides
+Overlays are tunable: each exposes an editable-parameter spec (text / color /
+font / position) derived from its layer, and callers can pass per-overlay overrides
 that get applied before compositing. The daemon re-validates everything.
 
 Everything here must stay expressible in matrix/panel/schema.py (the contract).
@@ -31,12 +31,33 @@ FONTS = ["4x6", "5x7", "6x10", "7x13", "9x18", "10x20"]
 
 # Layer fields a user may tune. `_params_for` derives a spec from a layer so the
 # client knows which controls to show; `_apply_params` writes overrides back.
-_TUNABLE = ("color", "font", "x", "y")
+_TUNABLE = ("content", "color", "font", "x", "y")
+
+# Longest `content` each layer type accepts (matrix/panel/schema.py). We clamp to
+# it here so an over-long message shortens instead of the daemon rejecting the
+# whole scene.
+_MAX_CONTENT = {"text": 256, "scroll": 512}
 
 
-def _params_for(layer: dict) -> dict:
-    """Editable-parameter spec for a layer: what to tune and how to present it."""
+def _clean_text(value, limit: int) -> str:
+    """User-typed content -> something the panel can draw. One line (the fonts
+    have no notion of a newline), no control characters, length-capped."""
+    text = value if isinstance(value, str) else str(value)
+    text = "".join(" " if c in "\t\r\n" else c for c in text if c.isprintable() or c in "\t\r\n")
+    return text[:limit]
+
+
+def _params_for(layer: dict, *, dynamic: bool = False) -> dict:
+    """Editable-parameter spec for a layer: what to tune and how to present it.
+
+    A `dynamic` overlay fills its own `content` from live data, so that field is
+    not the user's to type — everything else about it still is.
+    """
     spec: dict = {}
+    if "content" in layer and not dynamic:
+        spec["content"] = {"type": "text",
+                           "max_length": _MAX_CONTENT.get(layer.get("type"), 256),
+                           "default": layer["content"]}
     if "color" in layer:
         spec["color"] = {"type": "color", "default": layer["color"]}
     if "font" in layer:
@@ -51,8 +72,11 @@ def _params_for(layer: dict) -> dict:
 def _apply_params(layer: dict, params: dict | None) -> dict:
     """Write caller overrides onto a layer, ignoring anything not tunable."""
     for key, val in (params or {}).items():
-        if key in _TUNABLE:
-            layer[key] = val
+        if key not in _TUNABLE or key not in layer:
+            continue
+        if key == "content":
+            val = _clean_text(val, _MAX_CONTENT.get(layer.get("type"), 256))
+        layer[key] = val
     return layer
 
 
@@ -138,6 +162,15 @@ BACKGROUNDS: dict[str, dict] = {
     "aurora": {"emoji": "🌌", "layers": [
         {"type": "gif", "asset_id": "aurora", "fit": "cover", "fps": 14},
     ]},
+    "snoopy": {"emoji": "🐶", "brightness": 30, "layers": [
+        {"type": "gif", "asset_id": "snoopy", "fit": "cover", "fps": 8},
+    ]},
+    "fireworks": {"emoji": "🎆", "brightness": 35, "layers": [
+        {"type": "gif", "asset_id": "fireworks", "fit": "cover", "fps": 15},
+    ]},
+    "bounce": {"emoji": "📺", "brightness": 35, "layers": [
+        {"type": "gif", "asset_id": "bounce", "fit": "cover", "fps": 12},
+    ]},
     "fireflies": {"emoji": "🐝", "layers": [
         {"type": "gif", "asset_id": "fireflies", "fit": "cover", "fps": 14},
     ]},
@@ -154,6 +187,12 @@ OVERLAYS: dict[str, dict] = {
     "date": {"emoji": "📅", "layers": [
         {"type": "clock", "format": "%a %b %-d", "font": "6x10",
          "color": [255, 255, 255], "x": 30, "y": 60},
+    ]},
+    # Type your own line. Same shape as "label" — the difference is that this one
+    # exists to be edited, so it starts blank-ish and sits mid-panel.
+    "message": {"emoji": "💬", "layers": [
+        {"type": "scroll", "content": "type a message", "font": "7x13",
+         "color": [255, 255, 255], "y": 38, "speed_px_s": 25, "direction": "left"},
     ]},
     "label": {"emoji": "🔤", "layers": [
         {"type": "scroll", "content": "delia", "font": "7x13",
@@ -233,9 +272,11 @@ def list_overlays() -> list[dict]:
     """
     out = []
     for n, o in OVERLAYS.items():
+        dynamic = "build" in o
         template = o["template"] if "template" in o else o["layers"][0]
         out.append({"name": n, "emoji": o.get("emoji"),
-                    "params": _params_for(template), "dynamic": "build" in o})
+                    "params": _params_for(template, dynamic=dynamic),
+                    "dynamic": dynamic})
     return out
 
 

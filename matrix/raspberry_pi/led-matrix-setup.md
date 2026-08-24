@@ -213,6 +213,7 @@ o.chain_length, o.parallel = 1, 1
 o.hardware_mapping = 'adafruit-hat'
 o.gpio_slowdown = 2
 o.brightness = 40
+o.pixel_mapper_config = 'Rotate:180'   # the panel hangs upside down in its frame
 
 m = RGBMatrix(options=o)
 c = m.CreateFrameCanvas()
@@ -222,6 +223,13 @@ m.SwapOnVSync(c)
 
 Note the Python bindings link against the **built library**, so re-run
 `make LTO_FLAGS= install-python` after any change to `hardware-mapping.c`.
+
+`Rotate:180` is the mount, not the wiring: the panel is hung upside down, so the
+image is turned once in the library's pixel mapper and every scene above it
+keeps ordinary top-left coordinates. If it is ever remounted the right way up,
+that is `PANEL_ROTATE=0` in the renderer unit — nothing else changes. Only 0 and
+180 are accepted; 90/270 would make the panel 64x128, which the schema's fixed
+128x64 capabilities would reject.
 
 ---
 

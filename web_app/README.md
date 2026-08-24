@@ -48,7 +48,7 @@ The client hardcodes no scene list. Adding a scene is a one-file change in
 | | |
 |---|---|
 | `GET /api/backgrounds` | `{backgrounds: [{name, emoji}], current: string \| null}` |
-| `GET /api/overlays` | `{overlays: [{name, emoji, params}]}` — `params` is the editable spec |
+| `GET /api/overlays` | `{overlays: [{name, emoji, params, dynamic}]}` — `params` is the editable spec (`text`/`color`/`font`/`int`) |
 | `POST /api/scene` | `{background, overlays[], brightness?, color?}` → `{ok}`; `400` unknown name, `503` daemon down |
 | `POST /api/brightness` | `{value}` (1–100) → `{ok}` |
 | `POST /api/off` | `{ok}`; `503` daemon down |
@@ -191,7 +191,7 @@ python3 web_app/server/server.py
 cd web_app/client && npm install && npm run dev
 ```
 
-The proxy target defaults to `http://delia-pi.local:8080`. Override it:
+The proxy target defaults to `http://delia.local:8080`. Override it:
 
 ```bash
 PANEL_API=http://localhost:8080 npm run dev

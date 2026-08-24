@@ -19,7 +19,7 @@ export default defineConfig({
     host: true, // reachable from a phone on the same WiFi
     proxy: {
       '/api': {
-        target: process.env.PANEL_API ?? 'http://delia-pi.local:8080',
+        target: process.env.PANEL_API ?? 'http://delia.local:8080',
         changeOrigin: true,
       },
     },

@@ -56,6 +56,9 @@ def _nullable(inner: dict) -> dict:
 
 def _param_schema(spec: dict) -> dict:
     """One tunable param, from the same spec `_params_for` hands the client."""
+    if spec["type"] == "text":
+        return _nullable({"type": "string",
+                          "description": f"one line, up to {spec['max_length']} characters"})
     if spec["type"] == "color":
         return _nullable({"type": "string", "description": "hex, e.g. #ff8800"})
     if spec["type"] == "font":
@@ -135,6 +138,8 @@ What this panel is actually like:
   in daylight. Animated backgrounds want the lower end.
 
 Rules:
+- An overlay with a `content` param is one you write the words for — put the
+  user's message in it verbatim, and don't invent one they didn't ask for.
 - Set a param only when the request implies it. Leave the others null and the
   panel keeps its current, hand-tuned value.
 - "off", "dark", or "nothing" means the "black" background with no overlays.
@@ -223,7 +228,10 @@ def _to_request(plan: dict) -> dict:
             spec = specs[name].get(key)
             if raw is None or spec is None:
                 continue
-            if spec["type"] == "color":
+            if spec["type"] == "text":
+                if isinstance(raw, str) and raw.strip():
+                    params[key] = raw[:spec["max_length"]]
+            elif spec["type"] == "color":
                 rgb = _hex_to_rgb(raw) if isinstance(raw, str) else None
                 if rgb:
                     params[key] = rgb

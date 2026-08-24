@@ -32,8 +32,8 @@ phone -> React client (static, served by the API)
     `BACKGROUNDS` + `OVERLAYS` registry, `ai.py` the optional ask box). A scene
     is composed at request time: `compose(background, overlays)` stacks the
     background's layers, then each overlay's layers on top; overlays carry
-    per-instance `params` (color/font/position) overrides. Unprivileged; talks
-    to the daemon via `panel.client` (an installed package, so it stands
+    per-instance `params` (text/color/font/position) overrides. Unprivileged;
+    talks to the daemon via `panel.client` (an installed package, so it stands
     alone). Also static-hosts the built client.
   - `web_app/client/` — React + TypeScript + Vite SPA. Hardcodes **no**
     background/overlay list; it renders whatever `/api/backgrounds` and
@@ -62,7 +62,7 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
 - Off-Pi, everything runs on the **mock backend** (no GPIO, no fonts on disk):
   `cd matrix && PANEL_BACKEND=mock .venv/bin/pytest`.
 - Client dev loop: `cd web_app/client && npm run dev` — Vite on :5173 with HMR,
-  proxying `/api` to `delia-pi.local:8080` (override with `PANEL_API=…`). So you
+  proxying `/api` to `delia.local:8080` (override with `PANEL_API=…`). So you
   develop the UI against the real daemon without deploying.
 - **Deploy with `./deploy.sh`** (repo root) — don't hand-roll the rsync:
   ```
@@ -85,8 +85,11 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   (a `clock`, `text`, `scroll`). The client needs no change and no rebuild — it
   discovers both from the API. For an animation, drop a `.gif` in
   `matrix/assets/` and reference it with a `gif` layer (`asset_id` = filename
-  without extension). Overlays are **auto-tunable**: any `color`/`font`/`x`/`y`
-  on the primary layer becomes an editable control in the UI (see `_params_for`).
+  without extension). Overlays are **auto-tunable**: any
+  `content`/`color`/`font`/`x`/`y` on the primary layer becomes an editable
+  control in the UI (see `_params_for`) — `content` is how the `message` overlay
+  lets you type a line, and it is withheld from `dynamic` overlays, whose text
+  is fetched rather than typed.
   The generic "color" background and the global brightness slider are built in,
   not registry entries.
 - **The ask box (`web_app/server/ai.py`) adds no capability.** Claude picks
@@ -134,7 +137,7 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   `/etc/NetworkManager/system-connections/`, root-owned `0600` or NM ignores
   them. Reflashing the card to fix a network problem throws away the compiled
   `rpi-rgb-led-matrix` and the whole install; don't.
-- Reach the Pi: `ping delia-pi.local`, then `ssh mlavinder@delia-pi.local`
+- Reach the Pi: `ping delia.local`, then `ssh mlavinder@delia.local`
   (passwordless SSH key); `instructions/reaching-the-pi.md` when it won't answer.
   **`sudo` now requires a password** (the broad NOPASSWD grant was removed) — to
   run a privileged command in a session, prefix it with `! sudo …`.
@@ -148,7 +151,10 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   colors by swapping channels in scenes.
 - **Panel config lives in ONE place:** `matrix/panel/backends/rgbmatrix.py` —
   stock `adafruit-hat`, `multiplexing=0`, E on **GPIO 24** (bonnet "8" pad
-  soldered). If the panel bands/half-lights, it's the **E line / solder / a broken
+  soldered), and `Rotate:180` because the panel hangs upside down in its frame
+  (`PANEL_ROTATE=0` if it is ever remounted upright). The rotation is a pixel
+  mapper at the very bottom, so **scenes always use ordinary top-left
+  coordinates** — never compensate for the mount in a layer's `x`/`y`. If the panel bands/half-lights, it's the **E line / solder / a broken
   build — never multiplexing.** See `led-matrix-setup.md`.
 - Build the library with `make LTO_FLAGS= -j2` (LTO OOMs on 512 MB). Keep
   brightness modest.

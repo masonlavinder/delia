@@ -53,7 +53,7 @@ power on. If it's staying put (new router, or just a new password), switch it
 in place:
 
 ```bash
-ssh user@delia-pi.local 'sudo nmcli device wifi rescan; sudo nmcli connection up newplace'
+ssh user@delia.local 'sudo nmcli device wifi rescan; sudo nmcli connection up newplace'
 ```
 
 Your SSH session dies as it switches off the network you're connected over.
@@ -62,7 +62,7 @@ That's normal — wait 30s and reconnect.
 **3. Check it worked.**
 
 ```bash
-ssh user@delia-pi.local 'nmcli -f NAME,DEVICE,ACTIVE connection show'
+ssh user@delia.local 'nmcli -f NAME,DEVICE,ACTIVE connection show'
 ./deploy.sh status
 ```
 
@@ -110,7 +110,7 @@ udisksctl unmount -b /dev/mmcblk0p2      # or `sudo umount /mnt` if you mounted 
 **4. Check it worked.**
 
 ```bash
-ssh user@delia-pi.local 'nmcli -f NAME,DEVICE,ACTIVE connection show'
+ssh user@delia.local 'nmcli -f NAME,DEVICE,ACTIVE connection show'
 ./deploy.sh status
 ```
 
@@ -118,7 +118,7 @@ ssh user@delia-pi.local 'nmcli -f NAME,DEVICE,ACTIVE connection show'
 
 ## When something's wrong
 
-**`Could not resolve hostname delia-pi.local`** — that's mDNS, not WiFi, and the
+**`Could not resolve hostname delia.local`** — that's mDNS, not WiFi, and the
 Pi may be perfectly fine. See [reaching-the-pi.md](reaching-the-pi.md).
 
 **It joins nothing, and you're wondering why.** Look at the card before

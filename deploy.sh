@@ -19,7 +19,7 @@
 # Override the target:  PI_HOST=user@host  PI_DIR=delia  ./deploy.sh
 set -euo pipefail
 
-PI_HOST="${PI_HOST:-mlavinder@delia-pi.local}"
+PI_HOST="${PI_HOST:-mlavinder@delia.local}"
 PI_DIR="${PI_DIR:-delia}" # relative to $HOME on the Pi
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
