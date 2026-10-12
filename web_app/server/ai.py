@@ -132,8 +132,10 @@ What this panel is actually like:
   well; dark or desaturated ones just look muddy.
 - Text vanishes without hard contrast. Over a busy animated background, prefer
   white or one very bright colour.
-- x is from the left edge; y is the text BASELINE from the top. The clock in
-  10x20 is about 60px wide, so x=34 y=38 centres it.
+- x and y are 0..100, a percentage of the panel, and name the CENTRE of the
+  overlay: x=50 y=50 is dead centre, x=0 the left edge, y=0 the top. It is the
+  same for every overlay and font, and the panel keeps text on screen at the
+  edges.
 - brightness is 1..100 and should stay modest: 15-40 in a dark room, up to 70
   in daylight. Animated backgrounds want the lower end.
 

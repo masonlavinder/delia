@@ -30,7 +30,8 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 from panel.client import PanelClient
 
 import ai
-from scenes import compose, list_backgrounds, list_overlays, overlays_have_dynamic
+from scenes import (compose, list_backgrounds, list_overlays, norm_overlays,
+                    overlays_have_dynamic)
 
 CLIENT_DIST = Path(__file__).resolve().parent.parent / "client" / "dist"
 
@@ -97,9 +98,28 @@ def _apply(background, overlays, brightness=None, color=None) -> tuple[dict, int
     return result, (200 if result.get("ok") else 400)
 
 
+def _selection() -> dict | None:
+    """What the last applied scene was made of, overlay params included. The
+    daemon only knows the composed scene NAME; this is the rest, so a client
+    that reloads (or a second phone) picks up the overlays as they are — and a
+    background change then carries them over instead of resetting them."""
+    if not _last_request:
+        return None
+    return {"background": _last_request["background"],
+            "overlays": [{"name": n, "params": p}
+                         for n, p in norm_overlays(_last_request.get("overlays"))],
+            "color": _last_request.get("color")}
+
+
 @app.get("/api/backgrounds")
 def api_backgrounds():
-    return jsonify(backgrounds=list_backgrounds(), current=_current_scene())
+    current = _current_scene()
+    # Only vouch for the remembered selection while it's still what's playing
+    # (the daemon may have been restarted or cleared behind our back).
+    sel = _selection()
+    if sel is None or current is None:
+        sel = None
+    return jsonify(backgrounds=list_backgrounds(), current=current, selection=sel)
 
 
 @app.get("/api/overlays")

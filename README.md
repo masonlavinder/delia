@@ -36,6 +36,8 @@ path from input; every scene is re-validated at the daemon (the trust boundary).
 - **Control it:** open `http://delia.local:8080` on your phone (home WiFi).
 - **Reach the Pi:** `ping delia.local` to see if it's up, then
   `ssh mlavinder@delia.local` (passwordless key; `sudo` needs a password).
+  **On a new computer**, run `ssh-copy-id mlavinder@delia.local` once first,
+  or SSH and `./deploy.sh` fail with `Permission denied (publickey)`.
   More: [instructions/reaching-the-pi.md](instructions/reaching-the-pi.md).
 - **Deploy:** `./deploy.sh` (or `./deploy.sh client` for a UI-only change —
   that one needs no service restart). `./deploy.sh -h` for all targets.

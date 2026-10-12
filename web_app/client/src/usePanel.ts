@@ -12,6 +12,10 @@ import type { Item, Overlay, OverlaySel, Params } from './api'
 import { useThrottledCallback } from './useThrottle'
 
 const POLL_MS = 5000
+// After a local tweak, ignore the server's copy of the params for this long: the
+// throttled commit may not have landed yet, and adopting the older value would
+// snap a slider back mid-drag.
+const EDIT_QUIET_MS = 2000
 
 /** Split a composed scene name ("plasma-clock-date") back into the selection.
  * Names contain no dashes, so a plain split + membership check is unambiguous. */
@@ -67,12 +71,13 @@ export function usePanel() {
   const [note, setNote] = useState<string | null>(null) // the model's one-liner
 
   const pending = useRef(false)
+  const lastEdit = useRef(0)
   const ovNames = useMemo(() => new Set(overlays.map((o) => o.name)), [overlays])
 
   const refresh = useCallback(async () => {
     if (pending.current) return
     try {
-      const { backgrounds: bgs, current } = await fetchBackgrounds()
+      const { backgrounds: bgs, current, selection } = await fetchBackgrounds()
       if (pending.current) return
       setBackgrounds(bgs)
       // "color" is a valid background even though it's not in the preset list.
@@ -80,6 +85,18 @@ export function usePanel() {
       const sel = parseSelection(current, names, ovNames)
       setBackground(sel.background)
       setActive(sel.overlays)
+      // The server remembers the params it last applied. Take them, so a reload
+      // or a second phone starts from what's on the panel — otherwise the next
+      // background tap would send this client's empty params and reset every
+      // overlay to its defaults.
+      if (selection && Date.now() - lastEdit.current > EDIT_QUIET_MS) {
+        setParams((prev) => {
+          const next = { ...prev }
+          for (const o of selection.overlays) next[o.name] = { ...(o.params ?? {}) }
+          return next
+        })
+        if (selection.color) setColorState(rgbToHex(selection.color))
+      }
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -176,6 +193,7 @@ export function usePanel() {
 
   const pickColor = useCallback(
     (hex: string) => {
+      lastEdit.current = Date.now()
       setColorState(hex)
       setBackground('color') // optimistic; the throttled commit pushes it to the panel
       commitScene('color', active, params, brightness, hex)
@@ -188,6 +206,7 @@ export function usePanel() {
     (name: string, key: string, value: Params[string]) => {
       if (!background) return
       const next = { ...params, [name]: { ...(params[name] ?? {}), [key]: value } }
+      lastEdit.current = Date.now()
       setParams(next)
       commitScene(background, active, next, brightness, color)
     },

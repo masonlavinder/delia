@@ -5,7 +5,7 @@ written to be followed step by step months from now with no context loaded.
 
 | Doc | What it covers |
 |---|---|
-| [`reaching-the-pi.md`](reaching-the-pi.md) | Ping / SSH / find it on the network; what to check when it's not answering; renaming it |
+| [`reaching-the-pi.md`](reaching-the-pi.md) | Ping / SSH / find it on the network; setting up SSH from a new computer; what to check when it's not answering; renaming it |
 | [`wifi-new-network.md`](wifi-new-network.md) | Move the Pi to a new WiFi network, or update the password on the current one |
 
 Not the place for architecture or conventions — those live in `CLAUDE.md`,

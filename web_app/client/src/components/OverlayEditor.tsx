@@ -94,7 +94,11 @@ export function OverlayEditor({ overlay, values, onChange }: Props) {
         return (
           <label className="field" key={key}>
             <span className="mono-label">
-              {key} <span className="mono-value tabular">{val}</span>
+              {key}{' '}
+              <span className="mono-value tabular">
+                {val}
+                {spec.unit}
+              </span>
             </span>
             <input
               type="range"

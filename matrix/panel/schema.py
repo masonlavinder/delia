@@ -42,6 +42,15 @@ class Align(StrEnum):
     RIGHT = "right"
 
 
+class Anchor(StrEnum):
+    """What a text-ish layer's x/y name. START: x is the left edge, y the
+    baseline. CENTER: x/y is the centre of the drawn text (measured each frame,
+    so a clock stays put as its width changes), kept on the panel."""
+
+    START = "start"
+    CENTER = "center"
+
+
 class Direction(StrEnum):
     LEFT = "left"
     RIGHT = "right"
@@ -108,7 +117,8 @@ class TextLayer(_StrictLayer):
     color: Color
     x: int = Field(default=0, **_COORD)
     y: int = Field(default=13, **_COORD)
-    align: Align = Align.LEFT
+    align: Align = Align.LEFT        # only with anchor=start
+    anchor: Anchor = Anchor.START
 
 
 class ScrollLayer(_StrictLayer):
@@ -117,6 +127,7 @@ class ScrollLayer(_StrictLayer):
     font: FontName = FontName.F7x13
     color: Color
     y: int = Field(default=13, **_COORD)
+    anchor: Anchor = Anchor.START    # vertical only; x is the scroll
     speed_px_s: int = Field(default=30, ge=1, le=120)
     direction: Direction = Direction.LEFT
 
@@ -128,6 +139,7 @@ class ClockLayer(_StrictLayer):
     color: Color
     x: int = Field(default=0, **_COORD)
     y: int = Field(default=20, **_COORD)
+    anchor: Anchor = Anchor.START
 
 
 class ImageLayer(_StrictLayer):

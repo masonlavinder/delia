@@ -11,7 +11,7 @@ export type ParamSpec =
   | { type: 'text'; max_length: number; default: string }
   | { type: 'color'; default: [number, number, number] }
   | { type: 'font'; options: string[]; default: string }
-  | { type: 'int'; min: number; max: number; default: number }
+  | { type: 'int'; min: number; max: number; default: number; unit?: string }
 
 export type ParamValue = [number, number, number] | string | number
 export type Params = Record<string, ParamValue>
@@ -27,10 +27,20 @@ export type Overlay = Item & {
 /** An overlay selection sent to the panel: its name + any param overrides. */
 export type OverlaySel = { name: string; params?: Params }
 
+/** What the scene playing now was composed from, overlay params included —
+ * the server's memory of the last apply, so every client starts from it. */
+export type Selection = {
+  background: string
+  overlays: OverlaySel[]
+  color?: [number, number, number] | null
+}
+
 export type BackgroundsState = {
   backgrounds: Item[]
   /** Composed name of the scene rendering now (e.g. "plasma-clock"), or null when off. */
   current: string | null
+  /** Absent from an older server, null when the server doesn't know. */
+  selection?: Selection | null
 }
 
 /** The server's `{ok, error?}` envelope. Errors are surfaced, never swallowed. */

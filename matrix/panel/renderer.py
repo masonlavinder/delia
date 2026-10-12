@@ -19,7 +19,7 @@ from typing import Any
 from PIL import Image
 
 from .backends.base import LoadedFont, MatrixBackend
-from .schema import Align, Capabilities, Direction, Fit, Scene
+from .schema import Align, Anchor, Capabilities, Direction, Fit, Scene
 
 DEFAULT_ASSETS_DIR = "/home/mlavinder/delia/matrix/assets"
 _UNSET = object()
@@ -74,28 +74,46 @@ def _r_solid(c, item, elapsed, caps):
     c.fill(item.layer.color.as_tuple())
 
 
+def _center_x(cx: int, tw: int, caps) -> int:
+    """Left edge that puts a `tw`-wide run's centre at `cx`, kept on the panel."""
+    return max(0, min(cx - tw // 2, caps.width - tw)) if tw <= caps.width else 0
+
+
+def _center_baseline(cy: int, font: LoadedFont, caps) -> int:
+    """Baseline that puts the ascent rows (caps, digits) centred on `cy`, kept on
+    the panel."""
+    return max(font.ascent, min(cy + font.ascent // 2, caps.height))
+
+
 def _r_text(c, item, elapsed, caps):
     L = item.layer
     tw = len(L.content) * item.font.char_w
-    x = L.x
-    if L.align == Align.CENTER:
+    x, y = L.x, L.y
+    if L.anchor == Anchor.CENTER:
+        x, y = _center_x(L.x, tw, caps), _center_baseline(L.y, item.font, caps)
+    elif L.align == Align.CENTER:
         x = (caps.width - tw) // 2
     elif L.align == Align.RIGHT:
         x = caps.width - tw
-    c.draw_text(item.font, x, L.y, L.color.as_tuple(), L.content)
+    c.draw_text(item.font, x, y, L.color.as_tuple(), L.content)
 
 
 def _r_scroll(c, item, elapsed, caps):
     L = item.layer
     tw = len(L.content) * item.font.char_w
     x = scroll_x(caps.width, tw, L.speed_px_s, L.direction, elapsed)
-    c.draw_text(item.font, x, L.y, L.color.as_tuple(), L.content)
+    y = _center_baseline(L.y, item.font, caps) if L.anchor == Anchor.CENTER else L.y
+    c.draw_text(item.font, x, y, L.color.as_tuple(), L.content)
 
 
 def _r_clock(c, item, elapsed, caps):
     L = item.layer
-    c.draw_text(item.font, L.x, L.y, L.color.as_tuple(),
-                time.strftime(L.format, time.localtime()))
+    text = time.strftime(L.format, time.localtime())
+    x, y = L.x, L.y
+    if L.anchor == Anchor.CENTER:   # re-measured every frame: "9:59" -> "10:00" stays centred
+        x = _center_x(L.x, len(text) * item.font.char_w, caps)
+        y = _center_baseline(L.y, item.font, caps)
+    c.draw_text(item.font, x, y, L.color.as_tuple(), text)
 
 
 def _r_image(c, item, elapsed, caps):

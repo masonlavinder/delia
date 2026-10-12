@@ -134,3 +134,50 @@ def test_fit_contain_and_cover():
     img = Image.new("RGB", (200, 50), (255, 0, 0))
     assert fit_image(img, Fit.CONTAIN, 128, 64).size[0] <= 128
     assert fit_image(img, Fit.COVER, 128, 64).size == (128, 64)
+
+
+# --- anchor: center --------------------------------------------------------
+
+def _lit_box(img, color):
+    xs = [x for x in range(img.width) for y in range(img.height) if img.getpixel((x, y)) == color]
+    ys = [y for x in range(img.width) for y in range(img.height) if img.getpixel((x, y)) == color]
+    return min(xs), max(xs), min(ys), max(ys)
+
+
+def test_center_anchor_centres_text_on_xy():
+    r = renderer()
+    r.set_scene(scene([
+        {"type": "text", "content": "ABCD", "color": [255, 0, 0], "font": "7x13",
+         "anchor": "center", "x": 64, "y": 32},
+    ]))
+    r.render_frame(0.0)
+    x0, x1, _, _ = _lit_box(r.backend.last_frame, (255, 0, 0))
+    assert (x0, x1) == (50, 77)          # 28px wide, centred on 64
+    # baseline = 32 + 11//2 = 37 -> ascent rows 26..36 straddle 32
+    assert r.backend.last_frame.getpixel((60, 26)) == (255, 0, 0)
+    assert r.backend.last_frame.getpixel((60, 25)) == (0, 0, 0)
+
+
+def test_same_center_for_different_fonts():
+    centres = []
+    for font, content in (("4x6", "AB"), ("10x20", "ABCDEF")):
+        r = renderer()
+        r.set_scene(scene([
+            {"type": "text", "content": content, "color": [255, 255, 255], "font": font,
+             "anchor": "center", "x": 40, "y": 20},
+        ]))
+        r.render_frame(0.0)
+        x0, x1, _, _ = _lit_box(r.backend.last_frame, (255, 255, 255))
+        centres.append((x0 + x1 + 1) / 2)
+    assert centres == [40, 40]
+
+
+def test_center_anchor_stays_on_panel():
+    r = renderer()
+    r.set_scene(scene([
+        {"type": "clock", "format": "%H:%M", "color": [255, 255, 255], "font": "10x20",
+         "anchor": "center", "x": 128, "y": 0},
+    ]))
+    r.render_frame(0.0)
+    x0, x1, y0, _ = _lit_box(r.backend.last_frame, (255, 255, 255))
+    assert x1 == 127 and x0 == 78 and y0 == 0

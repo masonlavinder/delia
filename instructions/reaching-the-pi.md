@@ -15,6 +15,29 @@ ssh mlavinder@delia.local                      # 2. can I get a shell?
 curl -sI http://delia.local:8080 | head -1     # 4. is the web UI serving?
 ```
 
+## From a new computer
+
+The Pi only lets in SSH keys it already knows, so a new laptop (or a wiped one
+with a freshly generated key) gets rejected. The two errors you'll hit:
+
+- `Host key verification failed.` — this machine has never seen the Pi. Plain
+  `ssh mlavinder@delia.local` asks you to confirm it; type `yes`.
+- `Permission denied (publickey,password).` — the Pi doesn't know this
+  machine's key yet. `./deploy.sh` fails the same way (`rsync: unexpected end
+  of file`).
+
+Fix, once per machine:
+
+```bash
+ls ~/.ssh/id_ed25519.pub || ssh-keygen -t ed25519   # make a key if there isn't one
+ssh-copy-id mlavinder@delia.local                   # asks for the Pi's password once
+ssh mlavinder@delia.local true && echo OK           # now passwordless
+```
+
+`ssh-copy-id` *appends* to the Pi's `~/.ssh/authorized_keys`, so the old
+machine keeps working. If the Pi refuses passwords entirely, add the line from
+`~/.ssh/id_ed25519.pub` to `authorized_keys` from a machine that can still log in.
+
 ## Renaming it
 
 `delia.local` is just avahi publishing the Pi's hostname over mDNS. The catch is

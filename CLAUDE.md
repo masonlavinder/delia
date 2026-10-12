@@ -90,6 +90,16 @@ Runs as two **systemd services, enabled on boot**: `panel-renderer` (root) and
   control in the UI (see `_params_for`) — `content` is how the `message` overlay
   lets you type a line, and it is withheld from `dynamic` overlays, whose text
   is fetched rather than typed.
+  **Overlay positions are 0–100 % of the panel, naming the CENTRE** of what's
+  drawn: every overlay layer is `anchor: "center"` with its pixel centre in the
+  registry, and `_params_for`/`_apply_params` convert to and from percent. The
+  renderer measures the drawn text each frame and keeps it on the panel, so
+  50/50 is dead centre for any overlay, font, or clock width. Give a new
+  overlay `anchor: "center"` too.
+  The server remembers each overlay's params from the last apply and returns
+  them as `selection` from `/api/backgrounds`; the client adopts them, which is
+  what keeps a background change (or a reload, or a second phone) from
+  resetting the overlays.
   The generic "color" background and the global brightness slider are built in,
   not registry entries.
 - **The ask box (`web_app/server/ai.py`) adds no capability.** Claude picks

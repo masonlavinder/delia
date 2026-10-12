@@ -29,6 +29,11 @@ log = logging.getLogger(__name__)
 # Fonts available on the panel (must match matrix/panel/schema.py FontName).
 FONTS = ["4x6", "5x7", "6x10", "7x13", "9x18", "10x20"]
 
+# Panel size. Overlay positions are tuned as a percentage of it: every overlay
+# layer is `anchor: center`, so x/y name the centre of what's drawn, and 50/50 is
+# the middle of the panel whatever the font, text, or overlay type.
+W, H = 128, 64
+
 # Layer fields a user may tune. `_params_for` derives a spec from a layer so the
 # client knows which controls to show; `_apply_params` writes overrides back.
 _TUNABLE = ("content", "color", "font", "x", "y")
@@ -63,10 +68,19 @@ def _params_for(layer: dict, *, dynamic: bool = False) -> dict:
     if "font" in layer:
         spec["font"] = {"type": "font", "options": FONTS, "default": layer["font"]}
     if "x" in layer:
-        spec["x"] = {"type": "int", "min": 0, "max": 128, "default": layer["x"]}
+        spec["x"] = {"type": "int", "min": 0, "max": 100, "unit": "%",
+                     "default": round(layer["x"] * 100 / W)}
     if "y" in layer:
-        spec["y"] = {"type": "int", "min": 0, "max": 64, "default": layer["y"]}
+        spec["y"] = {"type": "int", "min": 0, "max": 100, "unit": "%",
+                     "default": round(layer["y"] * 100 / H)}
     return spec
+
+
+def _pct_to_px(value, size: int) -> int | None:
+    """A 0-100 slider value -> a pixel centre on an axis `size` long."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return round(max(0.0, min(float(value), 100.0)) * size / 100)
 
 
 def _apply_params(layer: dict, params: dict | None) -> dict:
@@ -76,6 +90,10 @@ def _apply_params(layer: dict, params: dict | None) -> dict:
             continue
         if key == "content":
             val = _clean_text(val, _MAX_CONTENT.get(layer.get("type"), 256))
+        elif key in ("x", "y"):
+            val = _pct_to_px(val, W if key == "x" else H)
+            if val is None:
+                continue
         layer[key] = val
     return layer
 
@@ -116,7 +134,7 @@ if WEATHER_LAT is None or WEATHER_LON is None:
 
 # Position/font/color of the weather readout; `content` is filled in live.
 _WEATHER_TEMPLATE = {"type": "text", "content": "--", "font": "7x13",
-                     "color": [255, 255, 255], "x": 100, "y": 12}
+                     "color": [255, 255, 255], "anchor": "center", "x": 110, "y": 7}
 
 
 def _fetch_temp() -> int:
@@ -174,29 +192,42 @@ BACKGROUNDS: dict[str, dict] = {
     "fireflies": {"emoji": "🐝", "layers": [
         {"type": "gif", "asset_id": "fireflies", "fit": "cover", "fps": 14},
     ]},
+    "pumpkin": {"emoji": "🎃", "brightness": 30, "layers": [
+        {"type": "gif", "asset_id": "pumpkin", "fit": "cover", "fps": 14},
+    ]},
+    "leaves": {"emoji": "🍂", "layers": [
+        {"type": "gif", "asset_id": "leaves", "fit": "cover", "fps": 12},
+    ]},
+    "ghost": {"emoji": "👻", "brightness": 35, "layers": [
+        {"type": "gif", "asset_id": "ghost", "fit": "cover", "fps": 14},
+    ]},
 }
 
 # --- OVERLAYS --------------------------------------------------------------
 # Drawn on top of whatever background is chosen. Keep them readable on any bg
 # (bright colors, near the panel edges). Their color/font/position are tunable.
+# Every one is `anchor: center` with x/y the pixel centre — the UI shows those as
+# 0-100% of the panel (see `_params_for`).
 OVERLAYS: dict[str, dict] = {
     "clock": {"emoji": "🕐", "layers": [
         {"type": "clock", "format": "%-I:%M", "font": "10x20",
-         "color": [255, 255, 255], "x": 34, "y": 38},
+         "color": [255, 255, 255], "anchor": "center", "x": 64, "y": 30},
     ]},
     "date": {"emoji": "📅", "layers": [
         {"type": "clock", "format": "%a %b %-d", "font": "6x10",
-         "color": [255, 255, 255], "x": 30, "y": 60},
+         "color": [255, 255, 255], "anchor": "center", "x": 64, "y": 56},
     ]},
     # Type your own line. Same shape as "label" — the difference is that this one
     # exists to be edited, so it starts blank-ish and sits mid-panel.
     "message": {"emoji": "💬", "layers": [
         {"type": "scroll", "content": "type a message", "font": "7x13",
-         "color": [255, 255, 255], "y": 38, "speed_px_s": 25, "direction": "left"},
+         "color": [255, 255, 255], "anchor": "center", "y": 32, "speed_px_s": 25,
+         "direction": "left"},
     ]},
     "label": {"emoji": "🔤", "layers": [
         {"type": "scroll", "content": "delia", "font": "7x13",
-         "color": [255, 255, 255], "y": 12, "speed_px_s": 25, "direction": "left"},
+         "color": [255, 255, 255], "anchor": "center", "y": 7, "speed_px_s": 25,
+         "direction": "left"},
     ]},
     # Dynamic: `build(params)` is called at compose time (fetches live data) and
     # applies the same tunable overrides. `template` describes its editable params
@@ -211,7 +242,7 @@ def _slug(text: str) -> str:
     return out.strip("-") or "scene"
 
 
-def _norm_overlays(overlays: list | None) -> list[tuple[str, dict]]:
+def norm_overlays(overlays: list | None) -> list[tuple[str, dict]]:
     """Accept overlays as bare names or {"name", "params"} objects -> pairs."""
     pairs: list[tuple[str, dict]] = []
     for o in (overlays or []):
@@ -229,7 +260,7 @@ def compose(background: str, overlays: list | None = None,
     The special background "color" is a generic solid of the given RGB `color`.
     Each overlay may carry per-overlay `params` (color/font/x/y overrides).
     """
-    pairs = _norm_overlays(overlays)
+    pairs = norm_overlays(overlays)
     if background == "color":
         layers = [{"type": "solid", "color": color or [0, 0, 0]}]
         bg_brightness = None
@@ -282,4 +313,4 @@ def list_overlays() -> list[dict]:
 
 def overlays_have_dynamic(overlays: list | None) -> bool:
     """True if any of these overlays fetches live data (weather)."""
-    return any("build" in (OVERLAYS.get(n) or {}) for n, _ in _norm_overlays(overlays))
+    return any("build" in (OVERLAYS.get(n) or {}) for n, _ in norm_overlays(overlays))

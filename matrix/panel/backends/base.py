@@ -23,12 +23,27 @@ class LoadedFont:
     char_w: int
     char_h: int
     native: Any = None   # graphics.Font (rgbmatrix) or None (mock)
+    ascent: int = 0      # rows above the baseline; 0 -> font_ascent(name)
+
+    def __post_init__(self):
+        if not self.ascent:
+            self.ascent = font_ascent(self.name)
+
+
+# FONT_ASCENT from the rpi-rgb-led-matrix BDFs. The cell spans baseline-ascent ..
+# baseline+descent; caps and digits fill the ascent rows, which is what
+# `anchor: center` centres on.
+_ASCENT = {"4x6": 5, "5x7": 6, "6x10": 8, "7x13": 11, "9x18": 14, "10x20": 16}
 
 
 def font_dimensions(name: FontName) -> tuple[int, int]:
     """'7x13' -> (7, 13)."""
     w, _, h = name.value.partition("x")
     return int(w), int(h)
+
+
+def font_ascent(name: FontName) -> int:
+    return _ASCENT.get(name.value, font_dimensions(name)[1])
 
 
 @runtime_checkable

@@ -29,7 +29,7 @@ class MockCanvas:
 
     def draw_text(self, font: LoadedFont, x, y, color, text):
         w, h = font.char_w, font.char_h
-        top = y - h                      # y is the baseline (bottom), like graphics.DrawText
+        top = y - font.ascent            # y is the baseline, like graphics.DrawText
         for i, ch in enumerate(text):
             if ch == " ":
                 continue
